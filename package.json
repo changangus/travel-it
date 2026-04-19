@@ -1,0 +1,38 @@
+{
+  "name": "@org/source",
+  "version": "0.0.0",
+  "license": "MIT",
+  "scripts": {},
+  "private": true,
+  "devDependencies": {
+    "@nx/js": "22.6.5",
+    "@nx/remix": "^22.6.5",
+    "@nx/vite": "22.6.5",
+    "@nx/vitest": "22.6.5",
+    "@nx/web": "22.6.5",
+    "@remix-run/dev": "^2.17.3",
+    "@swc-node/register": "1.11.1",
+    "@swc/core": "1.15.8",
+    "@swc/helpers": "0.5.18",
+    "@types/react": "^18.2.0",
+    "@types/react-dom": "^18.2.0",
+    "eslint": "^8.56.0",
+    "nx": "22.6.5",
+    "prettier": "^3.8.1",
+    "tslib": "^2.3.0",
+    "typescript": "~5.9.2",
+    "vite": "^6.0.0"
+  },
+  "workspaces": [
+    "packages/*",
+    "apps/frontend"
+  ],
+  "dependencies": {
+    "@remix-run/node": "^2.17.3",
+    "@remix-run/react": "^2.17.3",
+    "@remix-run/serve": "^2.17.3",
+    "isbot": "^4.4.0",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0"
+  }
+}
