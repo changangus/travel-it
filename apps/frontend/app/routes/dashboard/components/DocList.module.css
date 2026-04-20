@@ -1,0 +1,39 @@
+.docList {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  margin-top: 0.5rem;
+}
+
+.docItem {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: #f3f4f6;
+  border-radius: 6px;
+  padding: 0.35rem 0.6rem;
+}
+
+.docIcon {
+  font-size: 1rem;
+}
+
+.docLink {
+  font-size: 0.8rem;
+  color: #374151;
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  text-decoration: none;
+}
+
+.docLink:hover {
+  text-decoration: underline;
+}
+
+.docSize {
+  font-size: 0.75rem;
+  color: #9ca3af;
+  flex-shrink: 0;
+}

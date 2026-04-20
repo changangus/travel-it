@@ -1,0 +1,173 @@
+.itineraryHeader {
+  margin-bottom: 1.5rem;
+}
+
+.itineraryTitleRow {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.itineraryTitle {
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: #111827;
+  margin: 0;
+}
+
+.syncBtn {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.4rem 0.85rem;
+  border-radius: 8px;
+  border: 1px solid #34a853;
+  background: #fff;
+  color: #34a853;
+  font-size: 0.8rem;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.syncBtnSynced {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.4rem 0.85rem;
+  border-radius: 8px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  font-family: inherit;
+  white-space: nowrap;
+  border: 1px solid #d1d5db;
+  background: #f9fafb;
+  color: #9ca3af;
+  cursor: default;
+}
+
+.syncBtn:disabled {
+  opacity: 0.7;
+}
+
+.itineraryMeta {
+  margin-top: 0.25rem;
+  font-size: 0.9rem;
+  color: #6b7280;
+}
+
+.itineraryDescription {
+  margin-top: 0.5rem;
+  font-size: 0.9rem;
+  color: #4b5563;
+}
+
+.itineraryError {
+  margin-top: 0.5rem;
+  font-size: 0.85rem;
+  color: #ef4444;
+}
+
+.timezoneContainer {
+  margin-top: 0.75rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.timezoneLabel {
+  font-size: 0.8rem;
+  color: #6b7280;
+  flex-shrink: 0;
+}
+
+.timezoneSelect {
+  font-size: 0.8rem;
+  font-family: inherit;
+  color: #374151;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  padding: 0.2rem 0.5rem;
+  background: #fff;
+  cursor: pointer;
+}
+
+.timezoneSelect:disabled {
+  opacity: 0.6;
+}
+
+.daySwitcher {
+  display: flex;
+  gap: 0.5rem;
+  overflow-x: auto;
+  margin-bottom: 1.5rem;
+  padding-bottom: 4px;
+}
+
+.dayBtn {
+  flex-shrink: 0;
+  padding: 0.4rem 1rem;
+  border-radius: 8px;
+  border: 1px solid #e5e7eb;
+  background: #fff;
+  color: #374151;
+  font-family: inherit;
+  font-size: 0.85rem;
+  font-weight: 500;
+  cursor: pointer;
+  text-align: center;
+  line-height: 1.4;
+}
+
+.dayBtnActive {
+  flex-shrink: 0;
+  padding: 0.4rem 1rem;
+  border-radius: 8px;
+  font-family: inherit;
+  font-size: 0.85rem;
+  font-weight: 500;
+  cursor: pointer;
+  text-align: center;
+  line-height: 1.4;
+  border: 1px solid #6366f1;
+  background: #6366f1;
+  color: #fff;
+}
+
+.dayLabel {
+  display: block;
+  font-size: 0.7rem;
+  opacity: 0.8;
+}
+
+.eventsList {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.emptyDayText {
+  text-align: center;
+  color: #9ca3af;
+  padding: 3rem 0;
+  margin: 0;
+}
+
+.addEventBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  padding: 0.65rem;
+  border-radius: 10px;
+  border: 1.5px dashed #d1d5db;
+  background: transparent;
+  color: #6b7280;
+  font-size: 0.875rem;
+  font-family: inherit;
+  cursor: pointer;
+}

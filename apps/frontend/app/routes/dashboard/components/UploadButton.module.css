@@ -1,0 +1,23 @@
+.uploadBtn {
+  margin-top: 0.75rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.3rem 0.75rem;
+  border-radius: 6px;
+  border: 1px dashed #d1d5db;
+  background: transparent;
+  color: #6b7280;
+  font-size: 0.8rem;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.uploadBtn:disabled {
+  cursor: default;
+  opacity: 0.6;
+}
+
+.hidden {
+  display: none;
+}

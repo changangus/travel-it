@@ -1,0 +1,156 @@
+.eventCard {
+  padding: 1rem;
+  border-radius: 10px;
+  border: 1px solid transparent;
+}
+
+.eventCardTransport {
+  padding: 1rem;
+  border-radius: 10px;
+  border: 1px solid rgba(59, 130, 246, 0.2);
+  background: #eff6ff;
+}
+
+.eventCardActivity {
+  padding: 1rem;
+  border-radius: 10px;
+  border: 1px solid rgba(245, 158, 11, 0.2);
+  background: #fffbeb;
+}
+
+.eventCardAccommodation {
+  padding: 1rem;
+  border-radius: 10px;
+  border: 1px solid rgba(16, 185, 129, 0.2);
+  background: #ecfdf5;
+}
+
+.eventCardSynced {
+  padding: 1rem;
+  border-radius: 10px;
+  border: 1px solid rgba(139, 92, 246, 0.2);
+  background: #f5f3ff;
+}
+
+.eventCardDeleting {
+  opacity: 0.5;
+}
+
+.eventTypeTag {
+  font-size: 0.7rem;
+  font-weight: 500;
+  border-radius: 99px;
+  padding: 1px 8px;
+  text-transform: capitalize;
+}
+
+.eventTypeTagTransport {
+  font-size: 0.7rem;
+  font-weight: 500;
+  border-radius: 99px;
+  padding: 1px 8px;
+  text-transform: capitalize;
+  color: #3b82f6;
+  background: rgba(59, 130, 246, 0.1);
+}
+
+.eventTypeTagActivity {
+  font-size: 0.7rem;
+  font-weight: 500;
+  border-radius: 99px;
+  padding: 1px 8px;
+  text-transform: capitalize;
+  color: #f59e0b;
+  background: rgba(245, 158, 11, 0.1);
+}
+
+.eventTypeTagAccommodation {
+  font-size: 0.7rem;
+  font-weight: 500;
+  border-radius: 99px;
+  padding: 1px 8px;
+  text-transform: capitalize;
+  color: #10b981;
+  background: rgba(16, 185, 129, 0.1);
+}
+
+.eventTypeTagSynced {
+  font-size: 0.7rem;
+  font-weight: 500;
+  border-radius: 99px;
+  padding: 1px 8px;
+  text-transform: capitalize;
+  color: #8b5cf6;
+  background: rgba(139, 92, 246, 0.1);
+}
+
+.eventHeader {
+  display: flex;
+  gap: 1rem;
+}
+
+.eventIcon {
+  font-size: 1.4rem;
+  line-height: 1;
+  padding-top: 2px;
+  flex-shrink: 0;
+}
+
+.eventContent {
+  flex: 1;
+  min-width: 0;
+}
+
+.eventTitleRow {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.eventTitle {
+  font-weight: 600;
+  color: #111;
+}
+
+.eventSyncedTag {
+  font-size: 0.7rem;
+  font-weight: 500;
+  color: #34a853;
+  background: #e6f4ea;
+  border-radius: 99px;
+  padding: 1px 8px;
+}
+
+.eventMeta {
+  margin-top: 2px;
+  font-size: 0.85rem;
+  color: #6b7280;
+}
+
+.eventLocation {
+  color: #9ca3af;
+}
+
+.eventDescription {
+  margin-top: 0.5rem;
+  font-size: 0.875rem;
+  color: #4b5563;
+  line-height: 1.5;
+  margin-bottom: 0;
+}
+
+.eventActions {
+  flex-shrink: 0;
+  align-self: flex-start;
+}
+
+.eventMedia {
+  padding-left: 2.4rem;
+}
+
+.itineraryError {
+  margin-top: 0.5rem;
+  font-size: 0.85rem;
+  color: #ef4444;
+}
