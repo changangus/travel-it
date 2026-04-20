@@ -2,7 +2,9 @@
   "name": "@org/source",
   "version": "0.0.0",
   "license": "MIT",
-  "scripts": {},
+  "scripts": {
+    "setup": "npm install && npx nx run api:setup"
+  },
   "private": true,
   "devDependencies": {
     "@nx/js": "22.6.5",

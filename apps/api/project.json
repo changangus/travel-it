@@ -4,6 +4,13 @@
   "projectType": "application",
   "sourceRoot": "apps/api",
   "targets": {
+    "setup": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "composer run setup",
+        "cwd": "apps/api"
+      }
+    },
     "serve": {
       "executor": "nx:run-commands",
       "options": {

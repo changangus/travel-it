@@ -22,4 +22,7 @@ export default defineConfig({
     }),
     nxViteTsPaths(),
   ],
+  server: {
+    port: 5174,
+  },
 });
