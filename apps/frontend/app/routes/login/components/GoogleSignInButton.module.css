@@ -1,0 +1,23 @@
+.googleButton {
+  display: block;
+  width: 100%;
+  text-align: center;
+  padding: 0.75rem;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  color: #333;
+  font-weight: bold;
+  background-color: #fff;
+  cursor: pointer;
+}
+
+.googleButton:disabled {
+  cursor: not-allowed;
+}
+
+.errorText {
+  color: red;
+  font-size: 0.8rem;
+  margin-top: 0.5rem;
+  text-align: center;
+}

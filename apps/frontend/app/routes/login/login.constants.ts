@@ -1,0 +1,1 @@
+export const GOOGLE_AUTH_COOLDOWN_MS = 15_000;
