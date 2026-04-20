@@ -151,11 +151,11 @@ const COMMON_TIMEZONES = [
   { label: 'Italy (Rome)', value: 'Europe/Rome' },
 ];
 
-const TYPE_STYLES: Record<EventType, { icon: string; accent: string; bg: string }> = {
-  transport:     { icon: '🚆', accent: '#3b82f6', bg: '#eff6ff' },
-  activity:      { icon: '📍', accent: '#f59e0b', bg: '#fffbeb' },
-  accommodation: { icon: '🏨', accent: '#10b981', bg: '#ecfdf5' },
-  synced:        { icon: '📅', accent: '#8b5cf6', bg: '#f5f3ff' },
+const TYPE_STYLES: Record<EventType, { icon: string }> = {
+  transport:     { icon: '🚆' },
+  activity:      { icon: '📍' },
+  accommodation: { icon: '🏨' },
+  synced:        { icon: '📅' },
 };
 
 // --- Confirm modal ---
@@ -168,39 +168,21 @@ function ConfirmModal({ message, onConfirm, onCancel }: {
   return (
     <div
       onClick={onCancel}
-      style={{
-        position: 'fixed', inset: 0, zIndex: 300,
-        background: 'rgba(0,0,0,0.45)',
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-        padding: '1rem',
-      }}
+      className={styles.confirmBackdrop}
     >
       <div
         onClick={(e) => e.stopPropagation()}
-        style={{
-          background: '#fff', borderRadius: '12px', padding: '1.5rem',
-          width: '100%', maxWidth: '360px',
-          boxShadow: '0 20px 60px rgba(0,0,0,0.2)',
-        }}
+        className={styles.confirmPanel}
       >
-        <p style={{ margin: '0 0 1.25rem', fontSize: '0.95rem', color: '#111', lineHeight: 1.5 }}>{message}</p>
-        <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end' }}>
+        <p className={styles.confirmMessage}>{message}</p>
+        <div className={styles.confirmActions}>
           <button
             onClick={onCancel}
-            style={{
-              padding: '0.45rem 1rem', borderRadius: '6px',
-              border: '1px solid #d1d5db', background: '#fff',
-              color: '#374151', fontSize: '0.875rem', fontFamily: 'inherit', cursor: 'pointer',
-            }}
+            className={styles.confirmCancelBtn}
           >Cancel</button>
           <button
             onClick={onConfirm}
-            style={{
-              padding: '0.45rem 1rem', borderRadius: '6px',
-              border: 'none', background: '#ef4444',
-              color: '#fff', fontSize: '0.875rem', fontFamily: 'inherit',
-              cursor: 'pointer', fontWeight: 600,
-            }}
+            className={styles.confirmDeleteBtn}
           >Delete</button>
         </div>
       </div>
@@ -224,35 +206,19 @@ function EllipsisMenu({ items }: { items: { label: string; danger?: boolean; onC
   }, [open]);
 
   return (
-    <div ref={ref} style={{ position: 'relative' }}>
+    <div ref={ref} className={styles.ellipsisContainer}>
       <button
         onClick={(e) => { e.stopPropagation(); setOpen((o) => !o); }}
-        style={{
-          background: 'none', border: 'none', borderRadius: '4px',
-          padding: '0.15rem 0.35rem', cursor: 'pointer',
-          fontSize: '1rem', color: '#9ca3af', lineHeight: 1, fontFamily: 'inherit',
-        }}
+        className={styles.ellipsisBtn}
       >⋯</button>
 
       {open && (
-        <div style={{
-          position: 'absolute', top: 'calc(100% + 4px)', right: 0,
-          background: '#fff', border: '1px solid #e5e7eb',
-          borderRadius: '8px', boxShadow: '0 4px 16px rgba(0,0,0,0.1)',
-          minWidth: '110px', zIndex: 100, overflow: 'hidden',
-        }}>
+        <div className={styles.ellipsisMenu}>
           {items.map((item, i) => (
             <button
               key={i}
               onClick={(e) => { e.stopPropagation(); setOpen(false); item.onClick(); }}
-              style={{
-                display: 'block', width: '100%', textAlign: 'left',
-                padding: '0.5rem 0.85rem', background: 'none', border: 'none',
-                fontSize: '0.85rem', color: item.danger ? '#ef4444' : '#374151',
-                cursor: 'pointer', fontFamily: 'inherit',
-              }}
-              onMouseEnter={(e) => (e.currentTarget.style.background = item.danger ? '#fef2f2' : '#f9fafb')}
-              onMouseLeave={(e) => (e.currentTarget.style.background = 'none')}
+              className={item.danger ? styles.ellipsisMenuItemDanger : styles.ellipsisMenuItem}
             >{item.label}</button>
           ))}
         </div>
@@ -269,26 +235,26 @@ function PhotoGrid({ photos, onDelete }: { photos: MediaItem[]; onDelete: (id: n
 
   return (
     <>
-      <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', marginTop: '0.75rem' }}>
+      <div className={styles.photoGrid}>
         {photos.map((photo) => (
           <div
             key={photo.id}
-            style={{ position: 'relative', width: '80px', height: '80px', borderRadius: '6px', flexShrink: 0 }}
+            className={styles.photoItem}
           >
             {/* Image in its own clipping box */}
             <div
-              style={{ width: '100%', height: '100%', borderRadius: '6px', overflow: 'hidden', cursor: 'pointer' }}
+              className={styles.photoWrapper}
               onClick={() => setLightbox(photo.url)}
             >
               <img
                 src={photo.url}
                 alt={photo.file_name}
-                style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+                className={styles.photoImg}
               />
             </div>
             {/* Menu sits on top, outside the overflow:hidden box */}
             <div
-              style={{ position: 'absolute', top: '3px', right: '3px' }}
+              className={styles.photoMenu}
               onClick={(e) => e.stopPropagation()}
             >
               <EllipsisMenu items={[{
@@ -312,17 +278,12 @@ function PhotoGrid({ photos, onDelete }: { photos: MediaItem[]; onDelete: (id: n
       {lightbox && (
         <div
           onClick={() => setLightbox(null)}
-          style={{
-            position: 'fixed', inset: 0, zIndex: 1000,
-            background: 'rgba(0,0,0,0.85)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            cursor: 'zoom-out',
-          }}
+          className={styles.lightboxBackdrop}
         >
           <img
             src={lightbox}
             alt=""
-            style={{ maxWidth: '90vw', maxHeight: '90vh', borderRadius: '8px', objectFit: 'contain' }}
+            className={styles.lightboxImg}
           />
         </div>
       )}
@@ -335,31 +296,22 @@ function DocList({ docs, onDelete }: { docs: MediaItem[]; onDelete: (id: number)
 
   return (
     <>
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem', marginTop: '0.5rem' }}>
+    <div className={styles.docList}>
       {docs.map((doc) => (
         <div
           key={doc.id}
-          style={{
-            display: 'flex', alignItems: 'center', gap: '0.5rem',
-            background: '#f3f4f6', borderRadius: '6px', padding: '0.35rem 0.6rem',
-          }}
+          className={styles.docItem}
         >
-          <span style={{ fontSize: '1rem' }}>📄</span>
+          <span className={styles.docIcon}>📄</span>
           <a
             href={doc.url}
             target="_blank"
             rel="noreferrer"
-            style={{
-              fontSize: '0.8rem', color: '#374151', flex: 1,
-              overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-              textDecoration: 'none',
-            }}
-            onMouseEnter={(e) => (e.currentTarget.style.textDecoration = 'underline')}
-            onMouseLeave={(e) => (e.currentTarget.style.textDecoration = 'none')}
+            className={styles.docLink}
           >
             {doc.file_name}
           </a>
-          <span style={{ fontSize: '0.75rem', color: '#9ca3af', flexShrink: 0 }}>{formatBytes(doc.size_bytes)}</span>
+          <span className={styles.docSize}>{formatBytes(doc.size_bytes)}</span>
           <EllipsisMenu items={[{
             label: 'Delete',
             danger: true,
@@ -421,25 +373,13 @@ function UploadButton({ eventId, token, apiBase, onUploaded }: {
         ref={inputRef}
         type="file"
         accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.txt"
-        style={{ display: 'none' }}
+        className={styles.hidden}
         onChange={handleChange}
       />
       <button
         onClick={() => inputRef.current?.click()}
         disabled={uploading}
-        style={{
-          marginTop: '0.75rem',
-          display: 'inline-flex', alignItems: 'center', gap: '0.35rem',
-          padding: '0.3rem 0.75rem',
-          borderRadius: '6px',
-          border: '1px dashed #d1d5db',
-          background: 'transparent',
-          color: '#6b7280',
-          fontSize: '0.8rem',
-          cursor: uploading ? 'default' : 'pointer',
-          opacity: uploading ? 0.6 : 1,
-          fontFamily: 'inherit',
-        }}
+        className={styles.uploadBtn}
       >
         {uploading ? '⏳ Uploading…' : '+ Add photo or file'}
       </button>
@@ -521,95 +461,51 @@ function EventFormModal({ itineraryId, activeDay, timezone, event, token, apiBas
     setTimeout(() => onSaved(data), 250);
   };
 
-  const inputStyle: React.CSSProperties = {
-    width: '100%',
-    padding: '0.75rem',
-    borderRadius: '10px',
-    border: '1px solid #d1d5db',
-    fontSize: '1rem', // ≥16px prevents iOS auto-zoom on focus
-    fontFamily: 'inherit',
-    background: '#fff',
-    color: '#111',
-    boxSizing: 'border-box',
-    appearance: 'none',
-    WebkitAppearance: 'none',
-  };
-
-  const labelStyle: React.CSSProperties = {
-    display: 'block',
-    fontSize: '0.8rem',
-    fontWeight: 600,
-    color: '#374151',
-    marginBottom: '0.4rem',
-    textTransform: 'uppercase',
-    letterSpacing: '0.03em',
-  };
-
   return (
     <div
       onClick={handleClose}
-      className={isClosing ? styles.backdropExit : styles.backdropEnter}
-      style={{
-        position: 'fixed', inset: 0, zIndex: 200,
-        background: 'rgba(0,0,0,0.5)',
-        display: 'flex', alignItems: 'flex-end', justifyContent: 'center',
-      }}
+      className={isClosing ? `${styles.formBackdrop} ${styles.backdropExit}` : `${styles.formBackdrop} ${styles.backdropEnter}`}
     >
       <div
         onClick={(e) => e.stopPropagation()}
-        className={isClosing ? styles.panelExit : styles.panelEnter}
-        style={{
-          background: '#fff',
-          borderRadius: '20px 20px 0 0',
-          padding: '0 1.25rem 1.5rem',
-          paddingBottom: 'max(1.5rem, env(safe-area-inset-bottom))',
-          width: '100%',
-          maxWidth: '560px',
-          maxHeight: '92dvh',
-          overflowY: 'auto',
-          boxShadow: '0 -4px 40px rgba(0,0,0,0.18)',
-        }}
+        className={isClosing ? `${styles.formPanel} ${styles.panelExit}` : `${styles.formPanel} ${styles.panelEnter}`}
       >
         {/* Drag handle */}
-        <div style={{ display: 'flex', justifyContent: 'center', padding: '0.75rem 0 0.25rem' }}>
-          <div style={{ width: '36px', height: '4px', borderRadius: '99px', background: '#e5e7eb' }} />
+        <div className={styles.dragHandleContainer}>
+          <div className={styles.dragHandle} />
         </div>
 
         {/* Header */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.75rem 0 1.25rem' }}>
-          <h2 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 700, color: '#111' }}>
+        <div className={styles.formHeader}>
+          <h2 className={styles.formTitle}>
             {event ? 'Edit event' : 'New event'}
           </h2>
           <button
             onClick={handleClose}
-            style={{
-              background: '#f3f4f6', border: 'none', borderRadius: '50%',
-              width: '32px', height: '32px', cursor: 'pointer',
-              fontSize: '1rem', color: '#6b7280', display: 'flex', alignItems: 'center', justifyContent: 'center',
-            }}
+            className={styles.closeBtn}
           >✕</button>
         </div>
 
-        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1.1rem' }}>
+        <form onSubmit={handleSubmit} className={styles.form}>
           <div>
-            <label style={labelStyle}>Title *</label>
+            <label className={styles.label}>Title *</label>
             <input
               type="text"
               required
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               placeholder="e.g. Train to Milan"
-              style={inputStyle}
+              className={styles.input}
             />
           </div>
 
           <div>
-            <label style={labelStyle}>Type *</label>
+            <label className={styles.label}>Type *</label>
             <select
               required
               value={type}
               onChange={(e) => setType(e.target.value as typeof type)}
-              style={{ ...inputStyle, backgroundImage: 'url("data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'12\' height=\'8\' viewBox=\'0 0 12 8\'%3E%3Cpath d=\'M1 1l5 5 5-5\' stroke=\'%236b7280\' stroke-width=\'1.5\' fill=\'none\' stroke-linecap=\'round\'/%3E%3C/svg%3E")', backgroundRepeat: 'no-repeat', backgroundPosition: 'right 0.85rem center', paddingRight: '2.5rem' }}
+              className={styles.select}
             >
               <option value="activity">📍 Activity</option>
               <option value="transport">🚆 Transport</option>
@@ -618,73 +514,64 @@ function EventFormModal({ itineraryId, activeDay, timezone, event, token, apiBas
           </div>
 
           <div>
-            <label style={labelStyle}>Start *</label>
+            <label className={styles.label}>Start *</label>
             <input
               type="datetime-local"
               required
               value={startAt}
               onChange={(e) => setStartAt(e.target.value)}
-              style={inputStyle}
+              className={styles.input}
             />
           </div>
 
           <div>
-            <label style={labelStyle}>End</label>
+            <label className={styles.label}>End</label>
             <input
               type="datetime-local"
               value={endAt}
               onChange={(e) => setEndAt(e.target.value)}
-              style={inputStyle}
+              className={styles.input}
             />
           </div>
 
           <div>
-            <label style={labelStyle}>Location</label>
+            <label className={styles.label}>Location</label>
             <input
               type="text"
               value={location}
               onChange={(e) => setLocation(e.target.value)}
               placeholder="e.g. Milano Centrale"
-              style={inputStyle}
+              className={styles.input}
             />
           </div>
 
           <div>
-            <label style={labelStyle}>Description</label>
+            <label className={styles.label}>Description</label>
             <textarea
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               rows={3}
               placeholder="Optional notes…"
-              style={{ ...inputStyle, resize: 'vertical', lineHeight: 1.5 }}
+              className={styles.textarea}
             />
           </div>
 
           {error && (
-            <p style={{ margin: 0, fontSize: '0.875rem', color: '#ef4444' }}>{error}</p>
+            <p className={styles.errorText}>{error}</p>
           )}
 
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem', marginTop: '0.25rem' }}>
+          <div className={styles.formActions}>
             <button
               type="submit"
               disabled={saving}
-              style={{
-                width: '100%', padding: '0.85rem', borderRadius: '12px',
-                border: 'none', background: saving ? '#a5b4fc' : '#6366f1',
-                color: '#fff', fontSize: '1rem', fontFamily: 'inherit',
-                cursor: saving ? 'default' : 'pointer', fontWeight: 600,
-              }}
+              className={styles.submitBtn}
             >
               {saving ? 'Saving…' : event ? 'Save changes' : 'Add event'}
             </button>
             <button
               type="button"
               onClick={handleClose}
-              style={{
-                width: '100%', padding: '0.85rem', borderRadius: '12px',
-                border: '1px solid #e5e7eb', background: '#fff',
-                color: '#374151', fontSize: '1rem', fontFamily: 'inherit', cursor: 'pointer',
-              }}
+              className={styles.cancelBtnLarge}
             >
               Cancel
             </button>
@@ -760,45 +647,45 @@ function EventCard({ event, timezone, token, apiBase, onEdit, onDeleted, onSynce
   const photos = media.filter((m) => m.type === 'photo');
   const docs = media.filter((m) => m.type === 'document');
 
+  // Determine type-specific card class
+  let cardTypeClass = styles.eventCardActivity;
+  if (event.type === 'transport') cardTypeClass = styles.eventCardTransport;
+  if (event.type === 'accommodation') cardTypeClass = styles.eventCardAccommodation;
+  if (event.type === 'synced') cardTypeClass = styles.eventCardSynced;
+
+  // Determine type-specific tag class
+  let tagTypeClass = styles.eventTypeTagActivity;
+  if (event.type === 'transport') tagTypeClass = styles.eventTypeTagTransport;
+  if (event.type === 'accommodation') tagTypeClass = styles.eventTypeTagAccommodation;
+  if (event.type === 'synced') tagTypeClass = styles.eventTypeTagSynced;
+
   return (
     <>
-    <div style={{
-      padding: '1rem',
-      borderRadius: '10px',
-      border: `1px solid ${s.accent}33`,
-      background: s.bg,
-      opacity: deleting ? 0.5 : 1,
-    }}>
+    <div className={`${cardTypeClass} ${deleting ? styles.eventCardDeleting : ''}`}>
       {/* Header row */}
-      <div style={{ display: 'flex', gap: '1rem' }}>
-        <div style={{ fontSize: '1.4rem', lineHeight: 1, paddingTop: '2px', flexShrink: 0 }}>{s.icon}</div>
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
-            <span style={{ fontWeight: 600, color: '#111' }}>{event.title}</span>
-            <span style={{
-              fontSize: '0.7rem', fontWeight: 500, color: s.accent,
-              background: `${s.accent}1a`, borderRadius: '99px', padding: '1px 8px', textTransform: 'capitalize',
-            }}>{event.type}</span>
+      <div className={styles.eventHeader}>
+        <div className={styles.eventIcon}>{s.icon}</div>
+        <div className={styles.eventContent}>
+          <div className={styles.eventTitleRow}>
+            <span className={styles.eventTitle}>{event.title}</span>
+            <span className={tagTypeClass}>{event.type}</span>
             {event.is_synced && (
-              <span style={{
-                fontSize: '0.7rem', fontWeight: 500, color: '#34a853',
-                background: '#e6f4ea', borderRadius: '99px', padding: '1px 8px',
-              }}>📅 synced</span>
+              <span className={styles.eventSyncedTag}>📅 synced</span>
             )}
           </div>
-          <div style={{ marginTop: '2px', fontSize: '0.85rem', color: '#6b7280' }}>
+          <div className={styles.eventMeta}>
             {formatTime(event.start_at, timezone)}
             {event.end_at && ` – ${formatTime(event.end_at, timezone)}`}
-            {event.location && <span style={{ color: '#9ca3af' }}> · {event.location}</span>}
+            {event.location && <span className={styles.eventLocation}> · {event.location}</span>}
           </div>
           {event.description && (
-            <p style={{ marginTop: '0.5rem', fontSize: '0.875rem', color: '#4b5563', lineHeight: 1.5, margin: '0.5rem 0 0' }}>
+            <p className={styles.eventDescription}>
               {event.description}
             </p>
           )}
         </div>
 
-        <div style={{ flexShrink: 0, alignSelf: 'flex-start' }}>
+        <div className={styles.eventActions}>
           <EllipsisMenu items={[
             { label: 'Edit', onClick: onEdit },
             ...(!event.is_synced ? [{ label: syncing ? 'Syncing…' : '📅 Sync', onClick: handleSyncEvent }] : []),
@@ -808,12 +695,12 @@ function EventCard({ event, timezone, token, apiBase, onEdit, onDeleted, onSynce
       </div>
 
       {/* Media */}
-      <div style={{ marginTop: photos.length || docs.length ? '0.5rem' : 0, paddingLeft: '2.4rem' }}>
+      <div className={styles.eventMedia}>
         {photos.length > 0 && <PhotoGrid photos={photos} onDelete={handleMediaDelete} />}
         {docs.length > 0 && <DocList docs={docs} onDelete={handleMediaDelete} />}
         <UploadButton eventId={event.id} token={token} apiBase={apiBase} onUploaded={(m) => setMedia((prev) => [...prev, m])} />
         {syncError && (
-          <p style={{ margin: '0.5rem 0 0', fontSize: '0.8rem', color: '#ef4444' }}>{syncError}</p>
+          <p className={styles.itineraryError}>{syncError}</p>
         )}
       </div>
     </div>
@@ -833,12 +720,12 @@ function EventCard({ event, timezone, token, apiBase, onEdit, onDeleted, onSynce
 
 function EmptyState() {
   return (
-    <div style={{ textAlign: 'center', padding: '6rem 1rem' }}>
-      <div style={{ fontSize: '4rem', marginBottom: '1rem' }}>✈️</div>
-      <h2 style={{ fontSize: '1.5rem', fontWeight: 600, color: '#1f2937', marginBottom: '0.5rem' }}>
+    <div className={styles.emptyState}>
+      <div className={styles.emptyStateIcon}>✈️</div>
+      <h2 className={styles.emptyStateTitle}>
         No trips yet
       </h2>
-      <p style={{ color: '#6b7280', maxWidth: '320px', margin: '0 auto' }}>
+      <p className={styles.emptyStateText}>
         Your itineraries will appear here once you add your first trip.
       </p>
     </div>
@@ -913,63 +800,46 @@ function ItineraryView({ itinerary, token, apiBase }: { itinerary: Itinerary; to
 
   return (
     <div>
-      <div style={{ marginBottom: '1.5rem' }}>
-        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '1rem' }}>
-          <h1 style={{ fontSize: '1.75rem', fontWeight: 700, color: '#111827', margin: 0 }}>
+      <div className={styles.itineraryHeader}>
+        <div className={styles.itineraryTitleRow}>
+          <h1 className={styles.itineraryTitle}>
             {itinerary.title}
           </h1>
           <button
             onClick={handleSync}
             disabled={syncing || unsyncedCount === 0}
             title={unsyncedCount === 0 ? 'All events synced' : `Sync ${unsyncedCount} event${unsyncedCount !== 1 ? 's' : ''} to Google Calendar`}
-            style={{
-              flexShrink: 0,
-              display: 'inline-flex', alignItems: 'center', gap: '0.35rem',
-              padding: '0.4rem 0.85rem',
-              borderRadius: '8px',
-              border: '1px solid',
-              borderColor: unsyncedCount === 0 ? '#d1d5db' : '#34a853',
-              background: unsyncedCount === 0 ? '#f9fafb' : '#fff',
-              color: unsyncedCount === 0 ? '#9ca3af' : '#34a853',
-              fontSize: '0.8rem', fontWeight: 600, fontFamily: 'inherit',
-              cursor: syncing || unsyncedCount === 0 ? 'default' : 'pointer',
-              opacity: syncing ? 0.7 : 1,
-              whiteSpace: 'nowrap',
-            }}
+            className={unsyncedCount === 0 ? styles.syncBtnSynced : styles.syncBtn}
+            style={{ opacity: syncing ? 0.7 : 1 }}
           >
             {syncing ? '⏳ Syncing…' : unsyncedCount === 0 ? '📅 Synced' : '📅 Sync to Calendar'}
           </button>
         </div>
-        <p style={{ marginTop: '0.25rem', fontSize: '0.9rem', color: '#6b7280' }}>
+        <p className={styles.itineraryMeta}>
           {itinerary.destination} ·{' '}
           {new Date(`${itinerary.start_date.slice(0, 10)}T12:00:00Z`).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
           {' → '}
           {new Date(`${itinerary.end_date.slice(0, 10)}T12:00:00Z`).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
         </p>
         {itinerary.description && (
-          <p style={{ marginTop: '0.5rem', fontSize: '0.9rem', color: '#4b5563' }}>
+          <p className={styles.itineraryDescription}>
             {itinerary.description}
           </p>
         )}
         {syncError && (
-          <p style={{ marginTop: '0.5rem', fontSize: '0.85rem', color: '#ef4444', margin: '0.5rem 0 0' }}>
+          <p className={styles.itineraryError}>
             {syncError}
           </p>
         )}
 
         {/* Timezone selector */}
-        <div style={{ marginTop: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          <span style={{ fontSize: '0.8rem', color: '#6b7280', flexShrink: 0 }}>🌍 Timezone:</span>
+        <div className={styles.timezoneContainer}>
+          <span className={styles.timezoneLabel}>🌍 Timezone:</span>
           <select
             value={timezone}
             onChange={(e) => handleTimezoneChange(e.target.value)}
             disabled={tzSaving}
-            style={{
-              fontSize: '0.8rem', fontFamily: 'inherit', color: '#374151',
-              border: '1px solid #d1d5db', borderRadius: '6px',
-              padding: '0.2rem 0.5rem', background: '#fff', cursor: 'pointer',
-              opacity: tzSaving ? 0.6 : 1,
-            }}
+            className={styles.timezoneSelect}
           >
             {COMMON_TIMEZONES.map(({ label, value }) => (
               <option key={value} value={value}>{label}</option>
@@ -979,23 +849,16 @@ function ItineraryView({ itinerary, token, apiBase }: { itinerary: Itinerary; to
       </div>
 
       {/* Day switcher */}
-      <div style={{ display: 'flex', gap: '0.5rem', overflowX: 'auto', marginBottom: '1.5rem', paddingBottom: '4px' }}>
+      <div className={styles.daySwitcher}>
         {days.map((day, i) => {
           const active = activeDay === day;
           return (
             <button
               key={day}
               onClick={() => setActiveDay(day)}
-              style={{
-                flexShrink: 0, padding: '0.4rem 1rem', borderRadius: '8px',
-                border: `1px solid ${active ? '#6366f1' : '#e5e7eb'}`,
-                background: active ? '#6366f1' : '#fff',
-                color: active ? '#fff' : '#374151',
-                fontFamily: 'inherit', fontSize: '0.85rem', fontWeight: 500,
-                cursor: 'pointer', textAlign: 'center', lineHeight: 1.4,
-              }}
+              className={active ? styles.dayBtnActive : styles.dayBtn}
             >
-              <span style={{ display: 'block', fontSize: '0.7rem', opacity: 0.8 }}>Day {i + 1}</span>
+              <span className={styles.dayLabel}>Day {i + 1}</span>
               {formatDayLabel(day, timezone)}
             </button>
           );
@@ -1003,9 +866,9 @@ function ItineraryView({ itinerary, token, apiBase }: { itinerary: Itinerary; to
       </div>
 
       {/* Events */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+      <div className={styles.eventsList}>
         {dayEvents.length === 0 ? (
-          <p style={{ textAlign: 'center', color: '#9ca3af', padding: '3rem 0', margin: 0 }}>
+          <p className={styles.emptyDayText}>
             Nothing planned for this day.
           </p>
         ) : (
@@ -1026,18 +889,8 @@ function ItineraryView({ itinerary, token, apiBase }: { itinerary: Itinerary; to
         {/* Add event button */}
         <button
           onClick={() => setModalEvent('new')}
-          style={{
-            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.4rem',
-            padding: '0.65rem',
-            borderRadius: '10px',
-            border: '1.5px dashed #d1d5db',
-            background: 'transparent',
-            color: '#6b7280',
-            fontSize: '0.875rem',
-            fontFamily: 'inherit',
-            cursor: 'pointer',
-            marginTop: dayEvents.length === 0 ? 0 : '0.25rem',
-          }}
+          className={styles.addEventBtn}
+          style={{ marginTop: dayEvents.length === 0 ? 0 : '0.25rem' }}
         >
           + Add event
         </button>
@@ -1066,15 +919,15 @@ export default function Dashboard() {
   const { itineraries, token, apiBase } = useLoaderData<typeof loader>();
 
   return (
-    <div style={{ minHeight: '100vh', background: '#f9fafb', fontFamily: 'system-ui, sans-serif' }}>
-      <header style={{ borderBottom: '1px solid #e5e7eb', background: '#fff', padding: '1rem 1.5rem' }}>
-        <div style={{ maxWidth: '720px', margin: '0 auto', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <span style={{ fontWeight: 700, fontSize: '1.1rem', color: '#111827' }}>travel-it</span>
-          <Link to="/" style={{ fontSize: '0.875rem', color: '#6b7280', textDecoration: 'none' }}>← Home</Link>
+    <div className={styles.page}>
+      <header className={styles.header}>
+        <div className={styles.headerContent}>
+          <span className={styles.logo}>travel-it</span>
+          <Link to="/" className={styles.homeLink}>← Home</Link>
         </div>
       </header>
 
-      <main style={{ maxWidth: '720px', margin: '0 auto', padding: '2rem 1.5rem' }}>
+      <main className={styles.main}>
         {itineraries.length === 0 ? (
           <EmptyState />
         ) : (
