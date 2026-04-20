@@ -11,8 +11,8 @@ use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
 
-#[Fillable(['name', 'email', 'password'])]
-#[Hidden(['password', 'remember_token'])]
+#[Fillable(['name', 'email', 'password', 'google_access_token', 'google_refresh_token', 'google_token_expiry'])]
+#[Hidden(['password', 'remember_token', 'google_access_token', 'google_refresh_token'])]
 class User extends Authenticatable
 {
     /** @use HasFactory<UserFactory> */
@@ -27,6 +27,7 @@ class User extends Authenticatable
     {
         return [
             'email_verified_at' => 'datetime',
+            'google_token_expiry' => 'datetime',
             'password' => 'hashed',
         ];
     }

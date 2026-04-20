@@ -22,6 +22,8 @@ interface TripEvent {
   start_at: string;
   end_at: string | null;
   type: EventType;
+  google_event_id: string | null;
+  is_synced: boolean;
   media: MediaItem[];
 }
 
@@ -639,17 +641,43 @@ function EventFormModal({ itineraryId, activeDay, event, token, apiBase, onSaved
 
 // --- Event card ---
 
-function EventCard({ event, token, apiBase, onEdit, onDeleted }: {
+function EventCard({ event, token, apiBase, onEdit, onDeleted, onSynced }: {
   event: TripEvent;
   token: string;
   apiBase: string;
   onEdit: () => void;
   onDeleted: (id: number) => void;
+  onSynced: (event: TripEvent) => void;
 }) {
   const s = TYPE_STYLES[event.type] ?? TYPE_STYLES.activity;
   const [media, setMedia] = useState<MediaItem[]>(event.media);
   const [deleting, setDeleting] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [syncing, setSyncing] = useState(false);
+  const [syncError, setSyncError] = useState<string | null>(null);
+
+  const handleSyncEvent = async () => {
+    setSyncing(true);
+    setSyncError(null);
+    try {
+      const res = await fetch(`${apiBase}/api/events/${event.id}/sync-to-calendar`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}`, Accept: 'application/json' },
+      });
+      if (res.status === 422) {
+        setSyncError('Sign out and back in to grant calendar access.');
+        return;
+      }
+      if (!res.ok) {
+        setSyncError('Sync failed. Try again.');
+        return;
+      }
+      const { data } = await res.json();
+      onSynced(data);
+    } finally {
+      setSyncing(false);
+    }
+  };
 
   const handleMediaDelete = async (id: number) => {
     const res = await fetch(`${apiBase}/api/media/${id}`, {
@@ -694,6 +722,12 @@ function EventCard({ event, token, apiBase, onEdit, onDeleted }: {
               fontSize: '0.7rem', fontWeight: 500, color: s.accent,
               background: `${s.accent}1a`, borderRadius: '99px', padding: '1px 8px', textTransform: 'capitalize',
             }}>{event.type}</span>
+            {event.is_synced && (
+              <span style={{
+                fontSize: '0.7rem', fontWeight: 500, color: '#34a853',
+                background: '#e6f4ea', borderRadius: '99px', padding: '1px 8px',
+              }}>📅 synced</span>
+            )}
           </div>
           <div style={{ marginTop: '2px', fontSize: '0.85rem', color: '#6b7280' }}>
             {formatTime(event.start_at)}
@@ -710,6 +744,7 @@ function EventCard({ event, token, apiBase, onEdit, onDeleted }: {
         <div style={{ flexShrink: 0, alignSelf: 'flex-start' }}>
           <EllipsisMenu items={[
             { label: 'Edit', onClick: onEdit },
+            ...(!event.is_synced ? [{ label: syncing ? 'Syncing…' : '📅 Sync', onClick: handleSyncEvent }] : []),
             { label: 'Delete', danger: true, onClick: () => setConfirmDelete(true) },
           ]} />
         </div>
@@ -720,6 +755,9 @@ function EventCard({ event, token, apiBase, onEdit, onDeleted }: {
         {photos.length > 0 && <PhotoGrid photos={photos} onDelete={handleMediaDelete} />}
         {docs.length > 0 && <DocList docs={docs} onDelete={handleMediaDelete} />}
         <UploadButton eventId={event.id} token={token} apiBase={apiBase} onUploaded={(m) => setMedia((prev) => [...prev, m])} />
+        {syncError && (
+          <p style={{ margin: '0.5rem 0 0', fontSize: '0.8rem', color: '#ef4444' }}>{syncError}</p>
+        )}
       </div>
     </div>
 
@@ -757,6 +795,33 @@ function ItineraryView({ itinerary, token, apiBase }: { itinerary: Itinerary; to
   const [activeDay, setActiveDay] = useState(days[0]);
   const [events, setEvents] = useState<TripEvent[]>(itinerary.events);
   const [modalEvent, setModalEvent] = useState<TripEvent | null | 'new'>(null);
+  const [syncing, setSyncing] = useState(false);
+  const [syncError, setSyncError] = useState<string | null>(null);
+
+  const unsyncedCount = events.filter((e) => !e.is_synced).length;
+
+  const handleSync = async () => {
+    setSyncing(true);
+    setSyncError(null);
+    try {
+      const res = await fetch(`${apiBase}/api/itineraries/${itinerary.id}/sync-to-calendar`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}`, Accept: 'application/json' },
+      });
+      if (res.status === 422) {
+        setSyncError('Please sign out and sign back in to grant calendar access.');
+        return;
+      }
+      if (!res.ok) {
+        setSyncError('Sync failed. Please try again.');
+        return;
+      }
+      const { events: updatedEvents } = await res.json();
+      setEvents(updatedEvents);
+    } finally {
+      setSyncing(false);
+    }
+  };
 
   const dayEvents = eventsForDay(events, activeDay).sort(
     (a, b) => new Date(a.start_at).getTime() - new Date(b.start_at).getTime()
@@ -779,9 +844,32 @@ function ItineraryView({ itinerary, token, apiBase }: { itinerary: Itinerary; to
   return (
     <div>
       <div style={{ marginBottom: '1.5rem' }}>
-        <h1 style={{ fontSize: '1.75rem', fontWeight: 700, color: '#111827', margin: 0 }}>
-          {itinerary.title}
-        </h1>
+        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '1rem' }}>
+          <h1 style={{ fontSize: '1.75rem', fontWeight: 700, color: '#111827', margin: 0 }}>
+            {itinerary.title}
+          </h1>
+          <button
+            onClick={handleSync}
+            disabled={syncing || unsyncedCount === 0}
+            title={unsyncedCount === 0 ? 'All events synced' : `Sync ${unsyncedCount} event${unsyncedCount !== 1 ? 's' : ''} to Google Calendar`}
+            style={{
+              flexShrink: 0,
+              display: 'inline-flex', alignItems: 'center', gap: '0.35rem',
+              padding: '0.4rem 0.85rem',
+              borderRadius: '8px',
+              border: '1px solid',
+              borderColor: unsyncedCount === 0 ? '#d1d5db' : '#34a853',
+              background: unsyncedCount === 0 ? '#f9fafb' : '#fff',
+              color: unsyncedCount === 0 ? '#9ca3af' : '#34a853',
+              fontSize: '0.8rem', fontWeight: 600, fontFamily: 'inherit',
+              cursor: syncing || unsyncedCount === 0 ? 'default' : 'pointer',
+              opacity: syncing ? 0.7 : 1,
+              whiteSpace: 'nowrap',
+            }}
+          >
+            {syncing ? '⏳ Syncing…' : unsyncedCount === 0 ? '📅 Synced' : '📅 Sync to Calendar'}
+          </button>
+        </div>
         <p style={{ marginTop: '0.25rem', fontSize: '0.9rem', color: '#6b7280' }}>
           {itinerary.destination} ·{' '}
           {new Date(itinerary.start_date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
@@ -791,6 +879,11 @@ function ItineraryView({ itinerary, token, apiBase }: { itinerary: Itinerary; to
         {itinerary.description && (
           <p style={{ marginTop: '0.5rem', fontSize: '0.9rem', color: '#4b5563' }}>
             {itinerary.description}
+          </p>
+        )}
+        {syncError && (
+          <p style={{ marginTop: '0.5rem', fontSize: '0.85rem', color: '#ef4444', margin: '0.5rem 0 0' }}>
+            {syncError}
           </p>
         )}
       </div>
@@ -834,6 +927,7 @@ function ItineraryView({ itinerary, token, apiBase }: { itinerary: Itinerary; to
               apiBase={apiBase}
               onEdit={() => setModalEvent(event)}
               onDeleted={handleDeleted}
+              onSynced={handleSaved}
             />
           ))
         )}

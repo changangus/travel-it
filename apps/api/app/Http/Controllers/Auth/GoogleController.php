@@ -10,7 +10,11 @@ class GoogleController extends Controller
 {
     public function redirect()
     {
-        return Socialite::driver('google')->stateless()->redirect();
+        return Socialite::driver('google')
+            ->stateless()
+            ->scopes(['openid', 'email', 'profile', 'https://www.googleapis.com/auth/calendar'])
+            ->with(['access_type' => 'offline', 'prompt' => 'consent'])
+            ->redirect();
     }
 
     public function callback()
@@ -32,6 +36,14 @@ class GoogleController extends Controller
                 'password' => null,
             ]
         );
+
+        $user->update([
+            'google_access_token' => $googleUser->token,
+            'google_refresh_token' => $googleUser->refreshToken ?? $user->google_refresh_token,
+            'google_token_expiry' => $googleUser->expiresIn
+                ? now()->addSeconds($googleUser->expiresIn)
+                : null,
+        ]);
 
         $token = $user->createToken('auth_token')->plainTextToken;
         $frontendUrl = env('FRONTEND_URL', 'http://localhost:5173');
