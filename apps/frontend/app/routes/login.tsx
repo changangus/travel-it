@@ -1,6 +1,6 @@
 import type { ActionFunctionArgs, LoaderFunctionArgs } from "@remix-run/node";
 import { redirect } from "@remix-run/node";
-import { Form, useActionData, useNavigation, Link } from "@remix-run/react";
+import { Form, useActionData, useNavigation, useLoaderData, Link } from "@remix-run/react";
 import { commitSession, getSession } from "../services/session.server";
 
 export async function loader({ request }: LoaderFunctionArgs) {
@@ -8,52 +8,44 @@ export async function loader({ request }: LoaderFunctionArgs) {
   if (session.has("token")) {
     return redirect("/");
   }
-  return {};
+  const url = new URL(request.url);
+  const error = url.searchParams.get("error");
+  return {
+    error: error === "unauthorized" ? "You are not authorized to access this app." : null,
+  };
 }
+
+const GOOGLE_AUTH_COOLDOWN_MS = 15_000;
 
 export async function action({ request }: ActionFunctionArgs) {
   const formData = await request.formData();
-  const email = formData.get("email");
-  const password = formData.get("password");
-
+  const intent = formData.get("intent");
   const baseUrl = process.env.API_BASE_URL || "http://localhost:8000";
 
-  try {
-    const response = await fetch(`${baseUrl}/api/login`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Accept": "application/json",
-      },
-      body: JSON.stringify({ email, password }),
-    });
+  if (intent === "google") {
+    const session = await getSession(request.headers.get("Cookie"));
+    const lastAttempt = session.get("googleAuthAttemptAt") as number | undefined;
+    const now = Date.now();
 
-    const data = await response.json();
-
-    if (!response.ok) {
+    if (lastAttempt && now - lastAttempt < GOOGLE_AUTH_COOLDOWN_MS) {
+      const secondsLeft = Math.ceil((GOOGLE_AUTH_COOLDOWN_MS - (now - lastAttempt)) / 1000);
       return Response.json(
-        { errors: data.errors || { form: "Invalid credentials" } },
-        { status: 400 }
+        { errors: { google: `Please wait ${secondsLeft}s before trying again.` } },
+        { status: 429, headers: { "Set-Cookie": await commitSession(session) } }
       );
     }
 
-    const session = await getSession(request.headers.get("Cookie"));
-    session.set("token", data.token);
-
-    return redirect("/", {
-      headers: {
-        "Set-Cookie": await commitSession(session),
-      },
+    session.set("googleAuthAttemptAt", now);
+    return redirect(`${baseUrl}/api/auth/google`, {
+      headers: { "Set-Cookie": await commitSession(session) },
     });
-  } catch (error) {
-    return Response.json(
-      { errors: { form: "Could not connect to the authentication server" } },
-      { status: 500 }
-    );
   }
+
+  return Response.json({ errors: { form: "Invalid request" } }, { status: 400 });
 }
 
 export default function LoginPage() {
+  const { error } = useLoaderData<typeof loader>();
   const actionData = useActionData<typeof action>();
   const navigation = useNavigation();
   const isSubmitting = navigation.state === "submitting";
@@ -70,59 +62,37 @@ export default function LoginPage() {
     }}>
       <h1 style={{ textAlign: "center", marginBottom: "2rem" }}>Login</h1>
       
-      <Form method="post" style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
-        <div>
-          <label style={{ display: "block", marginBottom: "0.5rem" }}>Email</label>
-          <input 
-            type="email" 
-            name="email" 
-            required 
-            style={{ width: "100%", padding: "0.5rem", borderRadius: "4px", border: "1px solid #ccc" }}
-          />
-          {actionData?.errors?.email && (
-            <p style={{ color: "red", fontSize: "0.8rem", marginTop: "0.25rem" }}>
-              {actionData.errors.email[0]}
+      {error && (
+        <p style={{ color: "red", textAlign: "center", marginBottom: "1rem" }}>{error}</p>
+      )}
+
+      <Form method="post">
+          <input type="hidden" name="intent" value="google" />
+          <button
+            type="submit"
+            disabled={isSubmitting}
+            style={{
+              display: "block",
+              width: "100%",
+              textAlign: "center",
+              padding: "0.75rem",
+              border: "1px solid #ddd",
+              borderRadius: "4px",
+              color: "#333",
+              fontWeight: "bold",
+              backgroundColor: "#fff",
+              cursor: isSubmitting ? "not-allowed" : "pointer",
+            }}
+          >
+            Sign in with Google
+          </button>
+          {actionData?.errors?.google && (
+            <p style={{ color: "red", fontSize: "0.8rem", marginTop: "0.5rem", textAlign: "center" }}>
+              {actionData.errors.google}
             </p>
           )}
-        </div>
-
-        <div>
-          <label style={{ display: "block", marginBottom: "0.5rem" }}>Password</label>
-          <input 
-            type="password" 
-            name="password" 
-            required 
-            style={{ width: "100%", padding: "0.5rem", borderRadius: "4px", border: "1px solid #ccc" }}
-          />
-          {actionData?.errors?.password && (
-            <p style={{ color: "red", fontSize: "0.8rem", marginTop: "0.25rem" }}>
-              {actionData.errors.password[0]}
-            </p>
-          )}
-        </div>
-
-        {actionData?.errors?.form && (
-          <p style={{ color: "red", textAlign: "center" }}>{actionData.errors.form}</p>
-        )}
-
-        <button 
-          type="submit" 
-          disabled={isSubmitting}
-          style={{ 
-            padding: "0.75rem", 
-            backgroundColor: "#007bff", 
-            color: "white", 
-            border: "none", 
-            borderRadius: "4px",
-            cursor: isSubmitting ? "not-allowed" : "pointer",
-            fontWeight: "bold",
-            marginTop: "1rem"
-          }}
-        >
-          {isSubmitting ? "Logging in..." : "Sign In"}
-        </button>
       </Form>
-      
+
       <div style={{ marginTop: "1.5rem", textAlign: "center" }}>
         <Link to="/" style={{ color: "#666", textDecoration: "none", fontSize: "0.9rem" }}>
           &larr; Back to home

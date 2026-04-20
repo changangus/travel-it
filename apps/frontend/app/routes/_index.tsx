@@ -80,7 +80,7 @@ export default function Index() {
         }}>
           {user ? (
             <>
-              <span>Logged in as: <strong>{user.email}</strong></span>
+              <span>Welcome, <strong>{user.name}</strong></span>
               <Form method="post">
                 <button type="submit" style={{
                   background: 'none',
