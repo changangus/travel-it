@@ -71,6 +71,22 @@ class GoogleCalendarService
         $this->calendar->events->delete('primary', $googleEventId);
     }
 
+    /**
+     * Returns false if the event has been deleted or cancelled in Google Calendar.
+     */
+    public function eventExists(string $googleEventId): bool
+    {
+        try {
+            $event = $this->calendar->events->get('primary', $googleEventId);
+            return $event->getStatus() !== 'cancelled';
+        } catch (\Google\Service\Exception $e) {
+            if ($e->getCode() === 404 || $e->getCode() === 410) {
+                return false;
+            }
+            throw $e;
+        }
+    }
+
     private function buildGoogleEvent(Event $event): GoogleEvent
     {
         $googleEvent = new GoogleEvent();

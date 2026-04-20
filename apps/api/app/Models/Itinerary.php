@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Itinerary extends Model
 {
-    protected $fillable = ['title', 'description', 'destination', 'start_date', 'end_date'];
+    protected $fillable = ['title', 'description', 'destination', 'start_date', 'end_date', 'timezone'];
 
     protected $casts = [
         'start_date' => 'date',

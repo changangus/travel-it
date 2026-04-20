@@ -34,6 +34,7 @@ interface Itinerary {
   destination: string;
   start_date: string;
   end_date: string;
+  timezone: string;
   events: TripEvent[];
 }
 
@@ -59,19 +60,22 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
 
 // --- Helpers ---
 
-function formatTime(dateStr: string) {
+function formatTime(dateStr: string, tz: string) {
   return new Date(dateStr).toLocaleTimeString('en-GB', {
     hour: '2-digit',
     minute: '2-digit',
     hour12: false,
+    timeZone: tz,
   });
 }
 
-function formatDayLabel(dateStr: string) {
-  return new Date(dateStr).toLocaleDateString('en-GB', {
+function formatDayLabel(dateStr: string, tz: string) {
+  // Use noon UTC so date is stable across all timezone offsets
+  return new Date(`${dateStr}T12:00:00Z`).toLocaleDateString('en-GB', {
     weekday: 'short',
     day: 'numeric',
     month: 'short',
+    timeZone: tz,
   });
 }
 
@@ -81,29 +85,70 @@ function formatBytes(bytes: number) {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
+// Day keys are plain "YYYY-MM-DD" strings — iterate using UTC to avoid drift.
+// Slice to 10 chars first since Laravel serializes date casts as full ISO timestamps.
 function getDays(itinerary: Itinerary): string[] {
   const days: string[] = [];
-  const cur = new Date(itinerary.start_date);
-  const end = new Date(itinerary.end_date);
+  const cur = new Date(`${itinerary.start_date.slice(0, 10)}T12:00:00Z`);
+  const end = new Date(`${itinerary.end_date.slice(0, 10)}T12:00:00Z`);
   while (cur <= end) {
     days.push(cur.toISOString().slice(0, 10));
-    cur.setDate(cur.getDate() + 1);
+    cur.setUTCDate(cur.getUTCDate() + 1);
   }
   return days;
 }
 
-function eventsForDay(events: TripEvent[], day: string) {
-  return events.filter((e) => e.start_at.startsWith(day));
+// Extract "YYYY-MM-DD" for a UTC timestamp in a given timezone using formatToParts
+// so the result is never affected by locale-specific date ordering or separators.
+function dateParts(dateStr: string, tz: string): string {
+  const parts = new Intl.DateTimeFormat('en-CA', {
+    timeZone: tz,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).formatToParts(new Date(dateStr));
+  const get = (type: string) => parts.find((p) => p.type === type)?.value ?? '00';
+  return `${get('year')}-${get('month')}-${get('day')}`;
 }
 
-// Convert a datetime string from the API (e.g. "2026-04-20T09:00:00.000000Z") to
-// the value format required by <input type="datetime-local"> ("2026-04-20T09:00").
-function toDatetimeLocal(dateStr: string | null): string {
-  if (!dateStr) return '';
-  const d = new Date(dateStr);
-  const pad = (n: number) => String(n).padStart(2, '0');
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+// Group events by their calendar date in the destination timezone
+function eventsForDay(events: TripEvent[], day: string, tz: string) {
+  return events.filter((e) => dateParts(e.start_at, tz) === day);
 }
+
+// Convert a UTC datetime string to the value for <input type="datetime-local">
+// interpreted in the destination timezone (so the user sees/edits local trip times).
+function toDatetimeLocalInTz(dateStr: string | null, tz: string): string {
+  if (!dateStr) return '';
+  const parts = new Intl.DateTimeFormat('en-CA', {
+    timeZone: tz,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+  }).formatToParts(new Date(dateStr));
+  const get = (type: string) => parts.find((p) => p.type === type)?.value ?? '00';
+  const hour = get('hour') === '24' ? '00' : get('hour');
+  return `${get('year')}-${get('month')}-${get('day')}T${hour}:${get('minute')}`;
+}
+
+// Convert a datetime-local string (wall-clock time in `tz`) to a UTC ISO string.
+function tzLocalToUtc(datetimeLocal: string, tz: string): string {
+  // Treat the input as UTC to get a reference timestamp
+  const asIfUtc = new Date(datetimeLocal + 'Z');
+  // Ask what wall-clock time that UTC moment shows in the target timezone
+  const wallClock = new Date(asIfUtc.toLocaleString('en-US', { timeZone: tz }));
+  // The difference is the UTC offset for that timezone at that moment
+  const offsetMs = asIfUtc.getTime() - wallClock.getTime();
+  return new Date(asIfUtc.getTime() + offsetMs).toISOString();
+}
+
+const COMMON_TIMEZONES = [
+  { label: 'New York', value: 'America/New_York' },
+  { label: 'Italy (Rome)', value: 'Europe/Rome' },
+];
 
 const TYPE_STYLES: Record<EventType, { icon: string; accent: string; bg: string }> = {
   transport:     { icon: '🚆', accent: '#3b82f6', bg: '#eff6ff' },
@@ -406,6 +451,7 @@ function UploadButton({ eventId, token, apiBase, onUploaded }: {
 interface EventFormModalProps {
   itineraryId: number;
   activeDay: string;
+  timezone: string;
   event: TripEvent | null;
   token: string;
   apiBase: string;
@@ -413,15 +459,15 @@ interface EventFormModalProps {
   onClose: () => void;
 }
 
-function EventFormModal({ itineraryId, activeDay, event, token, apiBase, onSaved, onClose }: EventFormModalProps) {
-  const defaultStart = event ? toDatetimeLocal(event.start_at) : `${activeDay}T09:00`;
+function EventFormModal({ itineraryId, activeDay, timezone, event, token, apiBase, onSaved, onClose }: EventFormModalProps) {
+  const defaultStart = event ? toDatetimeLocalInTz(event.start_at, timezone) : `${activeDay}T09:00`;
 
   const [title, setTitle] = useState(event?.title ?? '');
   const [type, setType] = useState<'activity' | 'transport' | 'accommodation'>(
     event && event.type !== 'synced' ? event.type : 'activity'
   );
   const [startAt, setStartAt] = useState(defaultStart);
-  const [endAt, setEndAt] = useState(event ? toDatetimeLocal(event.end_at) : '');
+  const [endAt, setEndAt] = useState(event ? toDatetimeLocalInTz(event.end_at, timezone) : '');
   const [location, setLocation] = useState(event?.location ?? '');
   const [description, setDescription] = useState(event?.description ?? '');
   const [saving, setSaving] = useState(false);
@@ -435,8 +481,8 @@ function EventFormModal({ itineraryId, activeDay, event, token, apiBase, onSaved
     const body = {
       title,
       type,
-      start_at: startAt,
-      end_at: endAt || null,
+      start_at: tzLocalToUtc(startAt, timezone),
+      end_at: endAt ? tzLocalToUtc(endAt, timezone) : null,
       location: location || null,
       description: description || null,
     };
@@ -641,8 +687,9 @@ function EventFormModal({ itineraryId, activeDay, event, token, apiBase, onSaved
 
 // --- Event card ---
 
-function EventCard({ event, token, apiBase, onEdit, onDeleted, onSynced }: {
+function EventCard({ event, timezone, token, apiBase, onEdit, onDeleted, onSynced }: {
   event: TripEvent;
+  timezone: string;
   token: string;
   apiBase: string;
   onEdit: () => void;
@@ -730,8 +777,8 @@ function EventCard({ event, token, apiBase, onEdit, onDeleted, onSynced }: {
             )}
           </div>
           <div style={{ marginTop: '2px', fontSize: '0.85rem', color: '#6b7280' }}>
-            {formatTime(event.start_at)}
-            {event.end_at && ` – ${formatTime(event.end_at)}`}
+            {formatTime(event.start_at, timezone)}
+            {event.end_at && ` – ${formatTime(event.end_at, timezone)}`}
             {event.location && <span style={{ color: '#9ca3af' }}> · {event.location}</span>}
           </div>
           {event.description && (
@@ -797,6 +844,8 @@ function ItineraryView({ itinerary, token, apiBase }: { itinerary: Itinerary; to
   const [modalEvent, setModalEvent] = useState<TripEvent | null | 'new'>(null);
   const [syncing, setSyncing] = useState(false);
   const [syncError, setSyncError] = useState<string | null>(null);
+  const [timezone, setTimezone] = useState(itinerary.timezone || 'UTC');
+  const [tzSaving, setTzSaving] = useState(false);
 
   const unsyncedCount = events.filter((e) => !e.is_synced).length;
 
@@ -823,7 +872,18 @@ function ItineraryView({ itinerary, token, apiBase }: { itinerary: Itinerary; to
     }
   };
 
-  const dayEvents = eventsForDay(events, activeDay).sort(
+  const handleTimezoneChange = async (tz: string) => {
+    setTimezone(tz);
+    setTzSaving(true);
+    await fetch(`${apiBase}/api/itineraries/${itinerary.id}`, {
+      method: 'PATCH',
+      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json', Accept: 'application/json' },
+      body: JSON.stringify({ timezone: tz }),
+    });
+    setTzSaving(false);
+  };
+
+  const dayEvents = eventsForDay(events, activeDay, timezone).sort(
     (a, b) => new Date(a.start_at).getTime() - new Date(b.start_at).getTime()
   );
 
@@ -872,9 +932,9 @@ function ItineraryView({ itinerary, token, apiBase }: { itinerary: Itinerary; to
         </div>
         <p style={{ marginTop: '0.25rem', fontSize: '0.9rem', color: '#6b7280' }}>
           {itinerary.destination} ·{' '}
-          {new Date(itinerary.start_date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
+          {new Date(`${itinerary.start_date.slice(0, 10)}T12:00:00Z`).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
           {' → '}
-          {new Date(itinerary.end_date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
+          {new Date(`${itinerary.end_date.slice(0, 10)}T12:00:00Z`).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
         </p>
         {itinerary.description && (
           <p style={{ marginTop: '0.5rem', fontSize: '0.9rem', color: '#4b5563' }}>
@@ -886,6 +946,26 @@ function ItineraryView({ itinerary, token, apiBase }: { itinerary: Itinerary; to
             {syncError}
           </p>
         )}
+
+        {/* Timezone selector */}
+        <div style={{ marginTop: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+          <span style={{ fontSize: '0.8rem', color: '#6b7280', flexShrink: 0 }}>🌍 Timezone:</span>
+          <select
+            value={timezone}
+            onChange={(e) => handleTimezoneChange(e.target.value)}
+            disabled={tzSaving}
+            style={{
+              fontSize: '0.8rem', fontFamily: 'inherit', color: '#374151',
+              border: '1px solid #d1d5db', borderRadius: '6px',
+              padding: '0.2rem 0.5rem', background: '#fff', cursor: 'pointer',
+              opacity: tzSaving ? 0.6 : 1,
+            }}
+          >
+            {COMMON_TIMEZONES.map(({ label, value }) => (
+              <option key={value} value={value}>{label}</option>
+            ))}
+          </select>
+        </div>
       </div>
 
       {/* Day switcher */}
@@ -906,7 +986,7 @@ function ItineraryView({ itinerary, token, apiBase }: { itinerary: Itinerary; to
               }}
             >
               <span style={{ display: 'block', fontSize: '0.7rem', opacity: 0.8 }}>Day {i + 1}</span>
-              {formatDayLabel(day)}
+              {formatDayLabel(day, timezone)}
             </button>
           );
         })}
@@ -923,6 +1003,7 @@ function ItineraryView({ itinerary, token, apiBase }: { itinerary: Itinerary; to
             <EventCard
               key={event.id}
               event={event}
+              timezone={timezone}
               token={token}
               apiBase={apiBase}
               onEdit={() => setModalEvent(event)}
@@ -957,6 +1038,7 @@ function ItineraryView({ itinerary, token, apiBase }: { itinerary: Itinerary; to
         <EventFormModal
           itineraryId={itinerary.id}
           activeDay={activeDay}
+          timezone={timezone}
           event={modalEvent === 'new' ? null : modalEvent}
           token={token}
           apiBase={apiBase}
