@@ -1,7 +1,8 @@
 import { type LoaderFunctionArgs, redirect, json } from '@remix-run/node';
 import { useLoaderData, Link } from '@remix-run/react';
 import { useState, useRef, useEffect } from 'react';
-import { getSession } from '../services/session.server';
+import styles from './dashboard.module.css';
+import { getSession } from '../../services/session.server';
 
 type EventType = 'activity' | 'transport' | 'accommodation' | 'synced';
 
@@ -471,7 +472,13 @@ function EventFormModal({ itineraryId, activeDay, timezone, event, token, apiBas
   const [location, setLocation] = useState(event?.location ?? '');
   const [description, setDescription] = useState(event?.description ?? '');
   const [saving, setSaving] = useState(false);
+  const [isClosing, setIsClosing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const handleClose = () => {
+    setIsClosing(true);
+    setTimeout(onClose, 250);
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -510,7 +517,8 @@ function EventFormModal({ itineraryId, activeDay, timezone, event, token, apiBas
     }
 
     const { data } = await res.json();
-    onSaved(data);
+    setIsClosing(true);
+    setTimeout(() => onSaved(data), 250);
   };
 
   const inputStyle: React.CSSProperties = {
@@ -539,7 +547,8 @@ function EventFormModal({ itineraryId, activeDay, timezone, event, token, apiBas
 
   return (
     <div
-      onClick={onClose}
+      onClick={handleClose}
+      className={isClosing ? styles.backdropExit : styles.backdropEnter}
       style={{
         position: 'fixed', inset: 0, zIndex: 200,
         background: 'rgba(0,0,0,0.5)',
@@ -548,6 +557,7 @@ function EventFormModal({ itineraryId, activeDay, timezone, event, token, apiBas
     >
       <div
         onClick={(e) => e.stopPropagation()}
+        className={isClosing ? styles.panelExit : styles.panelEnter}
         style={{
           background: '#fff',
           borderRadius: '20px 20px 0 0',
@@ -571,7 +581,7 @@ function EventFormModal({ itineraryId, activeDay, timezone, event, token, apiBas
             {event ? 'Edit event' : 'New event'}
           </h2>
           <button
-            onClick={onClose}
+            onClick={handleClose}
             style={{
               background: '#f3f4f6', border: 'none', borderRadius: '50%',
               width: '32px', height: '32px', cursor: 'pointer',
@@ -669,7 +679,7 @@ function EventFormModal({ itineraryId, activeDay, timezone, event, token, apiBas
             </button>
             <button
               type="button"
-              onClick={onClose}
+              onClick={handleClose}
               style={{
                 width: '100%', padding: '0.85rem', borderRadius: '12px',
                 border: '1px solid #e5e7eb', background: '#fff',
