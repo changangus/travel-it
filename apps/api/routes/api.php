@@ -4,6 +4,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Auth\GoogleController;
+use App\Http\Controllers\ItineraryController;
 
 Route::get('/health', function () {
     return response()->json(['status' => 'ok']);
@@ -17,3 +18,8 @@ Route::post('/login', [LoginController::class, 'login']);
 
 Route::get('/auth/google', [GoogleController::class, 'redirect']);
 Route::get('/auth/google/callback', [GoogleController::class, 'callback']);
+
+Route::middleware('auth:sanctum')->group(function () {
+    Route::get('/itineraries', [ItineraryController::class, 'index']);
+    Route::get('/itineraries/{itinerary}', [ItineraryController::class, 'show']);
+});

@@ -81,6 +81,7 @@ export default function Index() {
           {user ? (
             <>
               <span>Welcome, <strong>{user.name}</strong></span>
+              <Link to="/dashboard" style={{ color: 'white', fontWeight: 'bold' }}>Dashboard</Link>
               <Form method="post">
                 <button type="submit" style={{
                   background: 'none',
