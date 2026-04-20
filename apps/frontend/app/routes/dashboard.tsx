@@ -467,14 +467,16 @@ function EventFormModal({ itineraryId, activeDay, event, token, apiBase, onSaved
 
   const inputStyle: React.CSSProperties = {
     width: '100%',
-    padding: '0.5rem 0.6rem',
-    borderRadius: '6px',
+    padding: '0.75rem',
+    borderRadius: '10px',
     border: '1px solid #d1d5db',
-    fontSize: '0.9rem',
+    fontSize: '1rem', // ≥16px prevents iOS auto-zoom on focus
     fontFamily: 'inherit',
     background: '#fff',
     color: '#111',
     boxSizing: 'border-box',
+    appearance: 'none',
+    WebkitAppearance: 'none',
   };
 
   const labelStyle: React.CSSProperties = {
@@ -482,7 +484,9 @@ function EventFormModal({ itineraryId, activeDay, event, token, apiBase, onSaved
     fontSize: '0.8rem',
     fontWeight: 600,
     color: '#374151',
-    marginBottom: '0.3rem',
+    marginBottom: '0.4rem',
+    textTransform: 'uppercase',
+    letterSpacing: '0.03em',
   };
 
   return (
@@ -490,35 +494,45 @@ function EventFormModal({ itineraryId, activeDay, event, token, apiBase, onSaved
       onClick={onClose}
       style={{
         position: 'fixed', inset: 0, zIndex: 200,
-        background: 'rgba(0,0,0,0.45)',
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-        padding: '1rem',
+        background: 'rgba(0,0,0,0.5)',
+        display: 'flex', alignItems: 'flex-end', justifyContent: 'center',
       }}
     >
       <div
         onClick={(e) => e.stopPropagation()}
         style={{
           background: '#fff',
-          borderRadius: '12px',
-          padding: '1.5rem',
+          borderRadius: '20px 20px 0 0',
+          padding: '0 1.25rem 1.5rem',
+          paddingBottom: 'max(1.5rem, env(safe-area-inset-bottom))',
           width: '100%',
-          maxWidth: '480px',
-          maxHeight: '90vh',
+          maxWidth: '560px',
+          maxHeight: '92dvh',
           overflowY: 'auto',
-          boxShadow: '0 20px 60px rgba(0,0,0,0.2)',
+          boxShadow: '0 -4px 40px rgba(0,0,0,0.18)',
         }}
       >
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.25rem' }}>
-          <h2 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 700, color: '#111' }}>
+        {/* Drag handle */}
+        <div style={{ display: 'flex', justifyContent: 'center', padding: '0.75rem 0 0.25rem' }}>
+          <div style={{ width: '36px', height: '4px', borderRadius: '99px', background: '#e5e7eb' }} />
+        </div>
+
+        {/* Header */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.75rem 0 1.25rem' }}>
+          <h2 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 700, color: '#111' }}>
             {event ? 'Edit event' : 'New event'}
           </h2>
           <button
             onClick={onClose}
-            style={{ background: 'none', border: 'none', color: '#9ca3af', cursor: 'pointer', fontSize: '1.25rem', lineHeight: 1, padding: 0 }}
+            style={{
+              background: '#f3f4f6', border: 'none', borderRadius: '50%',
+              width: '32px', height: '32px', cursor: 'pointer',
+              fontSize: '1rem', color: '#6b7280', display: 'flex', alignItems: 'center', justifyContent: 'center',
+            }}
           >✕</button>
         </div>
 
-        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1.1rem' }}>
           <div>
             <label style={labelStyle}>Title *</label>
             <input
@@ -537,7 +551,7 @@ function EventFormModal({ itineraryId, activeDay, event, token, apiBase, onSaved
               required
               value={type}
               onChange={(e) => setType(e.target.value as typeof type)}
-              style={inputStyle}
+              style={{ ...inputStyle, backgroundImage: 'url("data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'12\' height=\'8\' viewBox=\'0 0 12 8\'%3E%3Cpath d=\'M1 1l5 5 5-5\' stroke=\'%236b7280\' stroke-width=\'1.5\' fill=\'none\' stroke-linecap=\'round\'/%3E%3C/svg%3E")', backgroundRepeat: 'no-repeat', backgroundPosition: 'right 0.85rem center', paddingRight: '2.5rem' }}
             >
               <option value="activity">📍 Activity</option>
               <option value="transport">🚆 Transport</option>
@@ -545,26 +559,25 @@ function EventFormModal({ itineraryId, activeDay, event, token, apiBase, onSaved
             </select>
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
-            <div>
-              <label style={labelStyle}>Start *</label>
-              <input
-                type="datetime-local"
-                required
-                value={startAt}
-                onChange={(e) => setStartAt(e.target.value)}
-                style={inputStyle}
-              />
-            </div>
-            <div>
-              <label style={labelStyle}>End</label>
-              <input
-                type="datetime-local"
-                value={endAt}
-                onChange={(e) => setEndAt(e.target.value)}
-                style={inputStyle}
-              />
-            </div>
+          <div>
+            <label style={labelStyle}>Start *</label>
+            <input
+              type="datetime-local"
+              required
+              value={startAt}
+              onChange={(e) => setStartAt(e.target.value)}
+              style={inputStyle}
+            />
+          </div>
+
+          <div>
+            <label style={labelStyle}>End</label>
+            <input
+              type="datetime-local"
+              value={endAt}
+              onChange={(e) => setEndAt(e.target.value)}
+              style={inputStyle}
+            />
           </div>
 
           <div>
@@ -585,37 +598,37 @@ function EventFormModal({ itineraryId, activeDay, event, token, apiBase, onSaved
               onChange={(e) => setDescription(e.target.value)}
               rows={3}
               placeholder="Optional notes…"
-              style={{ ...inputStyle, resize: 'vertical' }}
+              style={{ ...inputStyle, resize: 'vertical', lineHeight: 1.5 }}
             />
           </div>
 
           {error && (
-            <p style={{ margin: 0, fontSize: '0.85rem', color: '#ef4444' }}>{error}</p>
+            <p style={{ margin: 0, fontSize: '0.875rem', color: '#ef4444' }}>{error}</p>
           )}
 
-          <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end', marginTop: '0.25rem' }}>
-            <button
-              type="button"
-              onClick={onClose}
-              style={{
-                padding: '0.5rem 1.1rem', borderRadius: '6px',
-                border: '1px solid #d1d5db', background: '#fff',
-                color: '#374151', fontSize: '0.875rem', fontFamily: 'inherit', cursor: 'pointer',
-              }}
-            >
-              Cancel
-            </button>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem', marginTop: '0.25rem' }}>
             <button
               type="submit"
               disabled={saving}
               style={{
-                padding: '0.5rem 1.1rem', borderRadius: '6px',
+                width: '100%', padding: '0.85rem', borderRadius: '12px',
                 border: 'none', background: saving ? '#a5b4fc' : '#6366f1',
-                color: '#fff', fontSize: '0.875rem', fontFamily: 'inherit',
+                color: '#fff', fontSize: '1rem', fontFamily: 'inherit',
                 cursor: saving ? 'default' : 'pointer', fontWeight: 600,
               }}
             >
               {saving ? 'Saving…' : event ? 'Save changes' : 'Add event'}
+            </button>
+            <button
+              type="button"
+              onClick={onClose}
+              style={{
+                width: '100%', padding: '0.85rem', borderRadius: '12px',
+                border: '1px solid #e5e7eb', background: '#fff',
+                color: '#374151', fontSize: '1rem', fontFamily: 'inherit', cursor: 'pointer',
+              }}
+            >
+              Cancel
             </button>
           </div>
         </form>
