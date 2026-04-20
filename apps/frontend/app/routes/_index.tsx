@@ -1,16 +1,35 @@
-import { useLoaderData } from '@remix-run/react';
+import { type LoaderFunctionArgs, type ActionFunctionArgs, redirect } from '@remix-run/node';
+import { useLoaderData, Link, Form } from '@remix-run/react';
 import { useState } from 'react';
+import { getSession, destroySession } from '../services/session.server';
 import NxWelcome from '../nx-welcome';
 
-export const loader = async () => {
-  // Strategy A: Use the API_BASE_URL from .env for server-side calls
+export const loader = async ({ request }: LoaderFunctionArgs) => {
   const baseUrl = process.env.API_BASE_URL || 'http://localhost:8000';
+  const session = await getSession(request.headers.get('Cookie'));
+  const token = session.get('token');
+
+  let user = null;
+  if (token) {
+    try {
+      const userRes = await fetch(`${baseUrl}/api/user`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          Accept: 'application/json',
+        },
+      });
+      if (userRes.ok) {
+        user = await userRes.json();
+      }
+    } catch (e) {
+      // Token might be invalid or backend down
+    }
+  }
 
   try {
     const res = await fetch(`${baseUrl}/api/health`);
-    if (!res.ok) throw new Error('Backend responded with error');
-    const data = await res.json();
-    return { health: data, baseUrl };
+    const data = res.ok ? await res.json() : { status: 'error' };
+    return { health: data, baseUrl, user };
   } catch (e) {
     return {
       health: {
@@ -18,12 +37,22 @@ export const loader = async () => {
         message: `Could not connect to backend at ${baseUrl}`,
       },
       baseUrl,
+      user,
     };
   }
 };
 
+export const action = async ({ request }: ActionFunctionArgs) => {
+  const session = await getSession(request.headers.get('Cookie'));
+  return redirect('/login', {
+    headers: {
+      'Set-Cookie': await destroySession(session),
+    },
+  });
+};
+
 export default function Index() {
-  const { health, baseUrl } = useLoaderData<typeof loader>();
+  const { health, baseUrl, user } = useLoaderData<typeof loader>();
   const [clientData, setClientData] = useState<any>(null);
 
   const testClientFetch = async () => {
@@ -39,6 +68,35 @@ export default function Index() {
   return (
     <>
       <div>
+        {/* Auth Bar */}
+        <div style={{
+          padding: '0.5rem 1rem',
+          display: 'flex',
+          justifyContent: 'flex-end',
+          alignItems: 'center',
+          gap: '1rem',
+          background: '#333',
+          color: 'white'
+        }}>
+          {user ? (
+            <>
+              <span>Logged in as: <strong>{user.email}</strong></span>
+              <Form method="post">
+                <button type="submit" style={{
+                  background: 'none',
+                  border: '1px solid white',
+                  color: 'white',
+                  padding: '2px 8px',
+                  borderRadius: '4px',
+                  cursor: 'pointer'
+                }}>Logout</button>
+              </Form>
+            </>
+          ) : (
+            <Link to="/login" style={{ color: 'white', textDecoration: 'none', fontWeight: 'bold' }}>Login</Link>
+          )}
+        </div>
+
         {/* Server-side Status */}
         <div
           style={{
