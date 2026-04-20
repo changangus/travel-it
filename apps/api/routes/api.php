@@ -5,6 +5,7 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Auth\GoogleController;
 use App\Http\Controllers\ItineraryController;
+use App\Http\Controllers\EventController;
 use App\Http\Controllers\MediaController;
 
 Route::get('/health', function () {
@@ -23,6 +24,9 @@ Route::get('/auth/google/callback', [GoogleController::class, 'callback']);
 Route::middleware('auth:sanctum')->group(function () {
     Route::get('/itineraries', [ItineraryController::class, 'index']);
     Route::get('/itineraries/{itinerary}', [ItineraryController::class, 'show']);
+    Route::post('/itineraries/{itinerary}/events', [EventController::class, 'store']);
+    Route::patch('/events/{event}', [EventController::class, 'update']);
+    Route::delete('/events/{event}', [EventController::class, 'destroy']);
     Route::post('/events/{event}/media', [MediaController::class, 'store']);
     Route::delete('/media/{media}', [MediaController::class, 'destroy']);
 });

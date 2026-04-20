@@ -1,6 +1,6 @@
 import { type LoaderFunctionArgs, redirect, json } from '@remix-run/node';
 import { useLoaderData, Link } from '@remix-run/react';
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { getSession } from '../services/session.server';
 
 type EventType = 'activity' | 'transport' | 'accommodation' | 'synced';
@@ -94,6 +94,15 @@ function eventsForDay(events: TripEvent[], day: string) {
   return events.filter((e) => e.start_at.startsWith(day));
 }
 
+// Convert a datetime string from the API (e.g. "2026-04-20T09:00:00.000000Z") to
+// the value format required by <input type="datetime-local"> ("2026-04-20T09:00").
+function toDatetimeLocal(dateStr: string | null): string {
+  if (!dateStr) return '';
+  const d = new Date(dateStr);
+  const pad = (n: number) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
 const TYPE_STYLES: Record<EventType, { icon: string; accent: string; bg: string }> = {
   transport:     { icon: '🚆', accent: '#3b82f6', bg: '#eff6ff' },
   activity:      { icon: '📍', accent: '#f59e0b', bg: '#fffbeb' },
@@ -101,10 +110,114 @@ const TYPE_STYLES: Record<EventType, { icon: string; accent: string; bg: string 
   synced:        { icon: '📅', accent: '#8b5cf6', bg: '#f5f3ff' },
 };
 
+// --- Confirm modal ---
+
+function ConfirmModal({ message, onConfirm, onCancel }: {
+  message: string;
+  onConfirm: () => void;
+  onCancel: () => void;
+}) {
+  return (
+    <div
+      onClick={onCancel}
+      style={{
+        position: 'fixed', inset: 0, zIndex: 300,
+        background: 'rgba(0,0,0,0.45)',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        padding: '1rem',
+      }}
+    >
+      <div
+        onClick={(e) => e.stopPropagation()}
+        style={{
+          background: '#fff', borderRadius: '12px', padding: '1.5rem',
+          width: '100%', maxWidth: '360px',
+          boxShadow: '0 20px 60px rgba(0,0,0,0.2)',
+        }}
+      >
+        <p style={{ margin: '0 0 1.25rem', fontSize: '0.95rem', color: '#111', lineHeight: 1.5 }}>{message}</p>
+        <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end' }}>
+          <button
+            onClick={onCancel}
+            style={{
+              padding: '0.45rem 1rem', borderRadius: '6px',
+              border: '1px solid #d1d5db', background: '#fff',
+              color: '#374151', fontSize: '0.875rem', fontFamily: 'inherit', cursor: 'pointer',
+            }}
+          >Cancel</button>
+          <button
+            onClick={onConfirm}
+            style={{
+              padding: '0.45rem 1rem', borderRadius: '6px',
+              border: 'none', background: '#ef4444',
+              color: '#fff', fontSize: '0.875rem', fontFamily: 'inherit',
+              cursor: 'pointer', fontWeight: 600,
+            }}
+          >Delete</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// --- Ellipsis dropdown (shared) ---
+
+function EllipsisMenu({ items }: { items: { label: string; danger?: boolean; onClick: () => void }[] }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const handler = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [open]);
+
+  return (
+    <div ref={ref} style={{ position: 'relative' }}>
+      <button
+        onClick={(e) => { e.stopPropagation(); setOpen((o) => !o); }}
+        style={{
+          background: 'none', border: 'none', borderRadius: '4px',
+          padding: '0.15rem 0.35rem', cursor: 'pointer',
+          fontSize: '1rem', color: '#9ca3af', lineHeight: 1, fontFamily: 'inherit',
+        }}
+      >⋯</button>
+
+      {open && (
+        <div style={{
+          position: 'absolute', top: 'calc(100% + 4px)', right: 0,
+          background: '#fff', border: '1px solid #e5e7eb',
+          borderRadius: '8px', boxShadow: '0 4px 16px rgba(0,0,0,0.1)',
+          minWidth: '110px', zIndex: 100, overflow: 'hidden',
+        }}>
+          {items.map((item, i) => (
+            <button
+              key={i}
+              onClick={(e) => { e.stopPropagation(); setOpen(false); item.onClick(); }}
+              style={{
+                display: 'block', width: '100%', textAlign: 'left',
+                padding: '0.5rem 0.85rem', background: 'none', border: 'none',
+                fontSize: '0.85rem', color: item.danger ? '#ef4444' : '#374151',
+                cursor: 'pointer', fontFamily: 'inherit',
+              }}
+              onMouseEnter={(e) => (e.currentTarget.style.background = item.danger ? '#fef2f2' : '#f9fafb')}
+              onMouseLeave={(e) => (e.currentTarget.style.background = 'none')}
+            >{item.label}</button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // --- Media components ---
 
 function PhotoGrid({ photos, onDelete }: { photos: MediaItem[]; onDelete: (id: number) => void }) {
   const [lightbox, setLightbox] = useState<string | null>(null);
+  const [confirmId, setConfirmId] = useState<number | null>(null);
 
   return (
     <>
@@ -112,26 +225,41 @@ function PhotoGrid({ photos, onDelete }: { photos: MediaItem[]; onDelete: (id: n
         {photos.map((photo) => (
           <div
             key={photo.id}
-            style={{ position: 'relative', width: '80px', height: '80px', borderRadius: '6px', overflow: 'hidden', cursor: 'pointer', flexShrink: 0 }}
-            onClick={() => setLightbox(photo.url)}
+            style={{ position: 'relative', width: '80px', height: '80px', borderRadius: '6px', flexShrink: 0 }}
           >
-            <img
-              src={photo.url}
-              alt={photo.file_name}
-              style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
-            />
-            <button
-              onClick={(e) => { e.stopPropagation(); onDelete(photo.id); }}
-              style={{
-                position: 'absolute', top: '3px', right: '3px',
-                width: '18px', height: '18px', borderRadius: '50%',
-                background: 'rgba(0,0,0,0.55)', border: 'none', color: '#fff',
-                fontSize: '0.6rem', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
-              }}
-            >✕</button>
+            {/* Image in its own clipping box */}
+            <div
+              style={{ width: '100%', height: '100%', borderRadius: '6px', overflow: 'hidden', cursor: 'pointer' }}
+              onClick={() => setLightbox(photo.url)}
+            >
+              <img
+                src={photo.url}
+                alt={photo.file_name}
+                style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+              />
+            </div>
+            {/* Menu sits on top, outside the overflow:hidden box */}
+            <div
+              style={{ position: 'absolute', top: '3px', right: '3px' }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <EllipsisMenu items={[{
+                label: 'Delete',
+                danger: true,
+                onClick: () => setConfirmId(photo.id),
+              }]} />
+            </div>
           </div>
         ))}
       </div>
+
+      {confirmId !== null && (
+        <ConfirmModal
+          message="Delete this photo?"
+          onConfirm={() => { onDelete(confirmId); setConfirmId(null); }}
+          onCancel={() => setConfirmId(null)}
+        />
+      )}
 
       {lightbox && (
         <div
@@ -155,7 +283,10 @@ function PhotoGrid({ photos, onDelete }: { photos: MediaItem[]; onDelete: (id: n
 }
 
 function DocList({ docs, onDelete }: { docs: MediaItem[]; onDelete: (id: number) => void }) {
+  const [confirmId, setConfirmId] = useState<number | null>(null);
+
   return (
+    <>
     <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem', marginTop: '0.5rem' }}>
       {docs.map((doc) => (
         <div
@@ -181,13 +312,23 @@ function DocList({ docs, onDelete }: { docs: MediaItem[]; onDelete: (id: number)
             {doc.file_name}
           </a>
           <span style={{ fontSize: '0.75rem', color: '#9ca3af', flexShrink: 0 }}>{formatBytes(doc.size_bytes)}</span>
-          <button
-            onClick={() => onDelete(doc.id)}
-            style={{ background: 'none', border: 'none', color: '#9ca3af', cursor: 'pointer', fontSize: '0.75rem', padding: '0 2px' }}
-          >✕</button>
+          <EllipsisMenu items={[{
+            label: 'Delete',
+            danger: true,
+            onClick: () => setConfirmId(doc.id),
+          }]} />
         </div>
       ))}
     </div>
+
+    {confirmId !== null && (
+      <ConfirmModal
+        message="Delete this file?"
+        onConfirm={() => { onDelete(confirmId); setConfirmId(null); }}
+        onCancel={() => setConfirmId(null)}
+      />
+    )}
+    </>
   );
 }
 
@@ -258,16 +399,246 @@ function UploadButton({ eventId, token, apiBase, onUploaded }: {
   );
 }
 
+// --- Event form modal ---
+
+interface EventFormModalProps {
+  itineraryId: number;
+  activeDay: string;
+  event: TripEvent | null;
+  token: string;
+  apiBase: string;
+  onSaved: (event: TripEvent) => void;
+  onClose: () => void;
+}
+
+function EventFormModal({ itineraryId, activeDay, event, token, apiBase, onSaved, onClose }: EventFormModalProps) {
+  const defaultStart = event ? toDatetimeLocal(event.start_at) : `${activeDay}T09:00`;
+
+  const [title, setTitle] = useState(event?.title ?? '');
+  const [type, setType] = useState<'activity' | 'transport' | 'accommodation'>(
+    event && event.type !== 'synced' ? event.type : 'activity'
+  );
+  const [startAt, setStartAt] = useState(defaultStart);
+  const [endAt, setEndAt] = useState(event ? toDatetimeLocal(event.end_at) : '');
+  const [location, setLocation] = useState(event?.location ?? '');
+  const [description, setDescription] = useState(event?.description ?? '');
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSaving(true);
+    setError(null);
+
+    const body = {
+      title,
+      type,
+      start_at: startAt,
+      end_at: endAt || null,
+      location: location || null,
+      description: description || null,
+    };
+
+    const url = event
+      ? `${apiBase}/api/events/${event.id}`
+      : `${apiBase}/api/itineraries/${itineraryId}/events`;
+
+    const res = await fetch(url, {
+      method: event ? 'PATCH' : 'POST',
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
+      },
+      body: JSON.stringify(body),
+    });
+
+    setSaving(false);
+
+    if (!res.ok) {
+      const json = await res.json().catch(() => ({}));
+      setError(json?.message ?? 'Something went wrong. Please try again.');
+      return;
+    }
+
+    const { data } = await res.json();
+    onSaved(data);
+  };
+
+  const inputStyle: React.CSSProperties = {
+    width: '100%',
+    padding: '0.5rem 0.6rem',
+    borderRadius: '6px',
+    border: '1px solid #d1d5db',
+    fontSize: '0.9rem',
+    fontFamily: 'inherit',
+    background: '#fff',
+    color: '#111',
+    boxSizing: 'border-box',
+  };
+
+  const labelStyle: React.CSSProperties = {
+    display: 'block',
+    fontSize: '0.8rem',
+    fontWeight: 600,
+    color: '#374151',
+    marginBottom: '0.3rem',
+  };
+
+  return (
+    <div
+      onClick={onClose}
+      style={{
+        position: 'fixed', inset: 0, zIndex: 200,
+        background: 'rgba(0,0,0,0.45)',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        padding: '1rem',
+      }}
+    >
+      <div
+        onClick={(e) => e.stopPropagation()}
+        style={{
+          background: '#fff',
+          borderRadius: '12px',
+          padding: '1.5rem',
+          width: '100%',
+          maxWidth: '480px',
+          maxHeight: '90vh',
+          overflowY: 'auto',
+          boxShadow: '0 20px 60px rgba(0,0,0,0.2)',
+        }}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.25rem' }}>
+          <h2 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 700, color: '#111' }}>
+            {event ? 'Edit event' : 'New event'}
+          </h2>
+          <button
+            onClick={onClose}
+            style={{ background: 'none', border: 'none', color: '#9ca3af', cursor: 'pointer', fontSize: '1.25rem', lineHeight: 1, padding: 0 }}
+          >✕</button>
+        </div>
+
+        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+          <div>
+            <label style={labelStyle}>Title *</label>
+            <input
+              type="text"
+              required
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              placeholder="e.g. Train to Milan"
+              style={inputStyle}
+            />
+          </div>
+
+          <div>
+            <label style={labelStyle}>Type *</label>
+            <select
+              required
+              value={type}
+              onChange={(e) => setType(e.target.value as typeof type)}
+              style={inputStyle}
+            >
+              <option value="activity">📍 Activity</option>
+              <option value="transport">🚆 Transport</option>
+              <option value="accommodation">🏨 Accommodation</option>
+            </select>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+            <div>
+              <label style={labelStyle}>Start *</label>
+              <input
+                type="datetime-local"
+                required
+                value={startAt}
+                onChange={(e) => setStartAt(e.target.value)}
+                style={inputStyle}
+              />
+            </div>
+            <div>
+              <label style={labelStyle}>End</label>
+              <input
+                type="datetime-local"
+                value={endAt}
+                onChange={(e) => setEndAt(e.target.value)}
+                style={inputStyle}
+              />
+            </div>
+          </div>
+
+          <div>
+            <label style={labelStyle}>Location</label>
+            <input
+              type="text"
+              value={location}
+              onChange={(e) => setLocation(e.target.value)}
+              placeholder="e.g. Milano Centrale"
+              style={inputStyle}
+            />
+          </div>
+
+          <div>
+            <label style={labelStyle}>Description</label>
+            <textarea
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              rows={3}
+              placeholder="Optional notes…"
+              style={{ ...inputStyle, resize: 'vertical' }}
+            />
+          </div>
+
+          {error && (
+            <p style={{ margin: 0, fontSize: '0.85rem', color: '#ef4444' }}>{error}</p>
+          )}
+
+          <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end', marginTop: '0.25rem' }}>
+            <button
+              type="button"
+              onClick={onClose}
+              style={{
+                padding: '0.5rem 1.1rem', borderRadius: '6px',
+                border: '1px solid #d1d5db', background: '#fff',
+                color: '#374151', fontSize: '0.875rem', fontFamily: 'inherit', cursor: 'pointer',
+              }}
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={saving}
+              style={{
+                padding: '0.5rem 1.1rem', borderRadius: '6px',
+                border: 'none', background: saving ? '#a5b4fc' : '#6366f1',
+                color: '#fff', fontSize: '0.875rem', fontFamily: 'inherit',
+                cursor: saving ? 'default' : 'pointer', fontWeight: 600,
+              }}
+            >
+              {saving ? 'Saving…' : event ? 'Save changes' : 'Add event'}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
 // --- Event card ---
 
-function EventCard({ event, token, apiBase }: { event: TripEvent; token: string; apiBase: string }) {
+function EventCard({ event, token, apiBase, onEdit, onDeleted }: {
+  event: TripEvent;
+  token: string;
+  apiBase: string;
+  onEdit: () => void;
+  onDeleted: (id: number) => void;
+}) {
   const s = TYPE_STYLES[event.type] ?? TYPE_STYLES.activity;
   const [media, setMedia] = useState<MediaItem[]>(event.media);
+  const [deleting, setDeleting] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
 
-  const photos = media.filter((m) => m.type === 'photo');
-  const docs = media.filter((m) => m.type === 'document');
-
-  const handleDelete = async (id: number) => {
+  const handleMediaDelete = async (id: number) => {
     const res = await fetch(`${apiBase}/api/media/${id}`, {
       method: 'DELETE',
       headers: { Authorization: `Bearer ${token}` },
@@ -275,12 +646,30 @@ function EventCard({ event, token, apiBase }: { event: TripEvent; token: string;
     if (res.ok) setMedia((prev) => prev.filter((m) => m.id !== id));
   };
 
+  const handleEventDelete = async () => {
+    setDeleting(true);
+    const res = await fetch(`${apiBase}/api/events/${event.id}`, {
+      method: 'DELETE',
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (res.ok) {
+      onDeleted(event.id);
+    } else {
+      setDeleting(false);
+    }
+  };
+
+  const photos = media.filter((m) => m.type === 'photo');
+  const docs = media.filter((m) => m.type === 'document');
+
   return (
+    <>
     <div style={{
       padding: '1rem',
       borderRadius: '10px',
       border: `1px solid ${s.accent}33`,
       background: s.bg,
+      opacity: deleting ? 0.5 : 1,
     }}>
       {/* Header row */}
       <div style={{ display: 'flex', gap: '1rem' }}>
@@ -304,15 +693,31 @@ function EventCard({ event, token, apiBase }: { event: TripEvent; token: string;
             </p>
           )}
         </div>
+
+        <div style={{ flexShrink: 0, alignSelf: 'flex-start' }}>
+          <EllipsisMenu items={[
+            { label: 'Edit', onClick: onEdit },
+            { label: 'Delete', danger: true, onClick: () => setConfirmDelete(true) },
+          ]} />
+        </div>
       </div>
 
       {/* Media */}
       <div style={{ marginTop: photos.length || docs.length ? '0.5rem' : 0, paddingLeft: '2.4rem' }}>
-        {photos.length > 0 && <PhotoGrid photos={photos} onDelete={handleDelete} />}
-        {docs.length > 0 && <DocList docs={docs} onDelete={handleDelete} />}
+        {photos.length > 0 && <PhotoGrid photos={photos} onDelete={handleMediaDelete} />}
+        {docs.length > 0 && <DocList docs={docs} onDelete={handleMediaDelete} />}
         <UploadButton eventId={event.id} token={token} apiBase={apiBase} onUploaded={(m) => setMedia((prev) => [...prev, m])} />
       </div>
     </div>
+
+    {confirmDelete && (
+      <ConfirmModal
+        message={`Delete "${event.title}"? This cannot be undone.`}
+        onConfirm={() => { setConfirmDelete(false); handleEventDelete(); }}
+        onCancel={() => setConfirmDelete(false)}
+      />
+    )}
+    </>
   );
 }
 
@@ -337,7 +742,26 @@ function EmptyState() {
 function ItineraryView({ itinerary, token, apiBase }: { itinerary: Itinerary; token: string; apiBase: string }) {
   const days = getDays(itinerary);
   const [activeDay, setActiveDay] = useState(days[0]);
-  const dayEvents = eventsForDay(itinerary.events, activeDay);
+  const [events, setEvents] = useState<TripEvent[]>(itinerary.events);
+  const [modalEvent, setModalEvent] = useState<TripEvent | null | 'new'>(null);
+
+  const dayEvents = eventsForDay(events, activeDay).sort(
+    (a, b) => new Date(a.start_at).getTime() - new Date(b.start_at).getTime()
+  );
+
+  const handleSaved = (saved: TripEvent) => {
+    setEvents((prev) => {
+      const exists = prev.find((e) => e.id === saved.id);
+      return exists
+        ? prev.map((e) => (e.id === saved.id ? saved : e))
+        : [...prev, saved];
+    });
+    setModalEvent(null);
+  };
+
+  const handleDeleted = (id: number) => {
+    setEvents((prev) => prev.filter((e) => e.id !== id));
+  };
 
   return (
     <div>
@@ -383,16 +807,55 @@ function ItineraryView({ itinerary, token, apiBase }: { itinerary: Itinerary; to
       </div>
 
       {/* Events */}
-      {dayEvents.length === 0 ? (
-        <p style={{ textAlign: 'center', color: '#9ca3af', padding: '3rem 0' }}>
-          Nothing planned for this day.
-        </p>
-      ) : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-          {dayEvents.map((event) => (
-            <EventCard key={event.id} event={event} token={token} apiBase={apiBase} />
-          ))}
-        </div>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+        {dayEvents.length === 0 ? (
+          <p style={{ textAlign: 'center', color: '#9ca3af', padding: '3rem 0', margin: 0 }}>
+            Nothing planned for this day.
+          </p>
+        ) : (
+          dayEvents.map((event) => (
+            <EventCard
+              key={event.id}
+              event={event}
+              token={token}
+              apiBase={apiBase}
+              onEdit={() => setModalEvent(event)}
+              onDeleted={handleDeleted}
+            />
+          ))
+        )}
+
+        {/* Add event button */}
+        <button
+          onClick={() => setModalEvent('new')}
+          style={{
+            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.4rem',
+            padding: '0.65rem',
+            borderRadius: '10px',
+            border: '1.5px dashed #d1d5db',
+            background: 'transparent',
+            color: '#6b7280',
+            fontSize: '0.875rem',
+            fontFamily: 'inherit',
+            cursor: 'pointer',
+            marginTop: dayEvents.length === 0 ? 0 : '0.25rem',
+          }}
+        >
+          + Add event
+        </button>
+      </div>
+
+      {/* Modal */}
+      {modalEvent !== null && (
+        <EventFormModal
+          itineraryId={itinerary.id}
+          activeDay={activeDay}
+          event={modalEvent === 'new' ? null : modalEvent}
+          token={token}
+          apiBase={apiBase}
+          onSaved={handleSaved}
+          onClose={() => setModalEvent(null)}
+        />
       )}
     </div>
   );
