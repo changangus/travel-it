@@ -1,9 +1,18 @@
 import { type LoaderFunctionArgs, redirect, json } from '@remix-run/node';
 import { useLoaderData, Link } from '@remix-run/react';
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { getSession } from '../services/session.server';
 
 type EventType = 'activity' | 'transport' | 'accommodation' | 'synced';
+
+interface MediaItem {
+  id: number;
+  type: 'photo' | 'document';
+  file_name: string;
+  mime_type: string;
+  size_bytes: number;
+  url: string;
+}
 
 interface TripEvent {
   id: number;
@@ -13,6 +22,7 @@ interface TripEvent {
   start_at: string;
   end_at: string | null;
   type: EventType;
+  media: MediaItem[];
 }
 
 interface Itinerary {
@@ -42,7 +52,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   if (!res.ok) return redirect('/login');
 
   const { data } = await res.json();
-  return json({ itineraries: data as Itinerary[] });
+  return json({ itineraries: data as Itinerary[], token, apiBase: baseUrl });
 };
 
 // --- Helpers ---
@@ -63,6 +73,12 @@ function formatDayLabel(dateStr: string) {
   });
 }
 
+function formatBytes(bytes: number) {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(0)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
 function getDays(itinerary: Itinerary): string[] {
   const days: string[] = [];
   const cur = new Date(itinerary.start_date);
@@ -79,53 +95,228 @@ function eventsForDay(events: TripEvent[], day: string) {
 }
 
 const TYPE_STYLES: Record<EventType, { icon: string; accent: string; bg: string }> = {
-  transport: { icon: '🚆', accent: '#3b82f6', bg: '#eff6ff' },
-  activity:  { icon: '📍', accent: '#f59e0b', bg: '#fffbeb' },
+  transport:     { icon: '🚆', accent: '#3b82f6', bg: '#eff6ff' },
+  activity:      { icon: '📍', accent: '#f59e0b', bg: '#fffbeb' },
   accommodation: { icon: '🏨', accent: '#10b981', bg: '#ecfdf5' },
-  synced:    { icon: '📅', accent: '#8b5cf6', bg: '#f5f3ff' },
+  synced:        { icon: '📅', accent: '#8b5cf6', bg: '#f5f3ff' },
 };
 
-// --- Components ---
+// --- Media components ---
 
-function EventCard({ event }: { event: TripEvent }) {
+function PhotoGrid({ photos, onDelete }: { photos: MediaItem[]; onDelete: (id: number) => void }) {
+  const [lightbox, setLightbox] = useState<string | null>(null);
+
+  return (
+    <>
+      <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', marginTop: '0.75rem' }}>
+        {photos.map((photo) => (
+          <div
+            key={photo.id}
+            style={{ position: 'relative', width: '80px', height: '80px', borderRadius: '6px', overflow: 'hidden', cursor: 'pointer', flexShrink: 0 }}
+            onClick={() => setLightbox(photo.url)}
+          >
+            <img
+              src={photo.url}
+              alt={photo.file_name}
+              style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+            />
+            <button
+              onClick={(e) => { e.stopPropagation(); onDelete(photo.id); }}
+              style={{
+                position: 'absolute', top: '3px', right: '3px',
+                width: '18px', height: '18px', borderRadius: '50%',
+                background: 'rgba(0,0,0,0.55)', border: 'none', color: '#fff',
+                fontSize: '0.6rem', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+              }}
+            >✕</button>
+          </div>
+        ))}
+      </div>
+
+      {lightbox && (
+        <div
+          onClick={() => setLightbox(null)}
+          style={{
+            position: 'fixed', inset: 0, zIndex: 1000,
+            background: 'rgba(0,0,0,0.85)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            cursor: 'zoom-out',
+          }}
+        >
+          <img
+            src={lightbox}
+            alt=""
+            style={{ maxWidth: '90vw', maxHeight: '90vh', borderRadius: '8px', objectFit: 'contain' }}
+          />
+        </div>
+      )}
+    </>
+  );
+}
+
+function DocList({ docs, onDelete }: { docs: MediaItem[]; onDelete: (id: number) => void }) {
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem', marginTop: '0.5rem' }}>
+      {docs.map((doc) => (
+        <div
+          key={doc.id}
+          style={{
+            display: 'flex', alignItems: 'center', gap: '0.5rem',
+            background: '#f3f4f6', borderRadius: '6px', padding: '0.35rem 0.6rem',
+          }}
+        >
+          <span style={{ fontSize: '1rem' }}>📄</span>
+          <a
+            href={doc.url}
+            target="_blank"
+            rel="noreferrer"
+            style={{
+              fontSize: '0.8rem', color: '#374151', flex: 1,
+              overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+              textDecoration: 'none',
+            }}
+            onMouseEnter={(e) => (e.currentTarget.style.textDecoration = 'underline')}
+            onMouseLeave={(e) => (e.currentTarget.style.textDecoration = 'none')}
+          >
+            {doc.file_name}
+          </a>
+          <span style={{ fontSize: '0.75rem', color: '#9ca3af', flexShrink: 0 }}>{formatBytes(doc.size_bytes)}</span>
+          <button
+            onClick={() => onDelete(doc.id)}
+            style={{ background: 'none', border: 'none', color: '#9ca3af', cursor: 'pointer', fontSize: '0.75rem', padding: '0 2px' }}
+          >✕</button>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// --- Upload button ---
+
+function UploadButton({ eventId, token, apiBase, onUploaded }: {
+  eventId: number;
+  token: string;
+  apiBase: string;
+  onUploaded: (media: MediaItem) => void;
+}) {
+  const inputRef = useRef<HTMLInputElement>(null);
+  const [uploading, setUploading] = useState(false);
+
+  const handleChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setUploading(true);
+    const form = new FormData();
+    form.append('file', file);
+
+    try {
+      const res = await fetch(`${apiBase}/api/events/${eventId}/media`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` },
+        body: form,
+      });
+      if (res.ok) {
+        const { data } = await res.json();
+        onUploaded(data);
+      }
+    } finally {
+      setUploading(false);
+      if (inputRef.current) inputRef.current.value = '';
+    }
+  };
+
+  return (
+    <>
+      <input
+        ref={inputRef}
+        type="file"
+        accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.txt"
+        style={{ display: 'none' }}
+        onChange={handleChange}
+      />
+      <button
+        onClick={() => inputRef.current?.click()}
+        disabled={uploading}
+        style={{
+          marginTop: '0.75rem',
+          display: 'inline-flex', alignItems: 'center', gap: '0.35rem',
+          padding: '0.3rem 0.75rem',
+          borderRadius: '6px',
+          border: '1px dashed #d1d5db',
+          background: 'transparent',
+          color: '#6b7280',
+          fontSize: '0.8rem',
+          cursor: uploading ? 'default' : 'pointer',
+          opacity: uploading ? 0.6 : 1,
+          fontFamily: 'inherit',
+        }}
+      >
+        {uploading ? '⏳ Uploading…' : '+ Add photo or file'}
+      </button>
+    </>
+  );
+}
+
+// --- Event card ---
+
+function EventCard({ event, token, apiBase }: { event: TripEvent; token: string; apiBase: string }) {
   const s = TYPE_STYLES[event.type] ?? TYPE_STYLES.activity;
+  const [media, setMedia] = useState<MediaItem[]>(event.media);
+
+  const photos = media.filter((m) => m.type === 'photo');
+  const docs = media.filter((m) => m.type === 'document');
+
+  const handleDelete = async (id: number) => {
+    const res = await fetch(`${apiBase}/api/media/${id}`, {
+      method: 'DELETE',
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (res.ok) setMedia((prev) => prev.filter((m) => m.id !== id));
+  };
+
   return (
     <div style={{
-      display: 'flex',
-      gap: '1rem',
       padding: '1rem',
       borderRadius: '10px',
       border: `1px solid ${s.accent}33`,
       background: s.bg,
     }}>
-      <div style={{ fontSize: '1.4rem', lineHeight: 1, paddingTop: '2px' }}>{s.icon}</div>
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
-          <span style={{ fontWeight: 600, color: '#111' }}>{event.title}</span>
-          <span style={{
-            fontSize: '0.7rem',
-            fontWeight: 500,
-            color: s.accent,
-            background: `${s.accent}1a`,
-            borderRadius: '99px',
-            padding: '1px 8px',
-            textTransform: 'capitalize',
-          }}>{event.type}</span>
+      {/* Header row */}
+      <div style={{ display: 'flex', gap: '1rem' }}>
+        <div style={{ fontSize: '1.4rem', lineHeight: 1, paddingTop: '2px', flexShrink: 0 }}>{s.icon}</div>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+            <span style={{ fontWeight: 600, color: '#111' }}>{event.title}</span>
+            <span style={{
+              fontSize: '0.7rem', fontWeight: 500, color: s.accent,
+              background: `${s.accent}1a`, borderRadius: '99px', padding: '1px 8px', textTransform: 'capitalize',
+            }}>{event.type}</span>
+          </div>
+          <div style={{ marginTop: '2px', fontSize: '0.85rem', color: '#6b7280' }}>
+            {formatTime(event.start_at)}
+            {event.end_at && ` – ${formatTime(event.end_at)}`}
+            {event.location && <span style={{ color: '#9ca3af' }}> · {event.location}</span>}
+          </div>
+          {event.description && (
+            <p style={{ marginTop: '0.5rem', fontSize: '0.875rem', color: '#4b5563', lineHeight: 1.5, margin: '0.5rem 0 0' }}>
+              {event.description}
+            </p>
+          )}
         </div>
-        <div style={{ marginTop: '2px', fontSize: '0.85rem', color: '#6b7280' }}>
-          {formatTime(event.start_at)}
-          {event.end_at && ` – ${formatTime(event.end_at)}`}
-          {event.location && <span style={{ color: '#9ca3af' }}> · {event.location}</span>}
-        </div>
-        {event.description && (
-          <p style={{ marginTop: '0.5rem', fontSize: '0.875rem', color: '#4b5563', lineHeight: 1.5 }}>
-            {event.description}
-          </p>
-        )}
+      </div>
+
+      {/* Media */}
+      <div style={{ marginTop: photos.length || docs.length ? '0.5rem' : 0, paddingLeft: '2.4rem' }}>
+        {photos.length > 0 && <PhotoGrid photos={photos} onDelete={handleDelete} />}
+        {docs.length > 0 && <DocList docs={docs} onDelete={handleDelete} />}
+        <UploadButton eventId={event.id} token={token} apiBase={apiBase} onUploaded={(m) => setMedia((prev) => [...prev, m])} />
       </div>
     </div>
   );
 }
+
+// --- Empty state ---
 
 function EmptyState() {
   return (
@@ -141,14 +332,15 @@ function EmptyState() {
   );
 }
 
-function ItineraryView({ itinerary }: { itinerary: Itinerary }) {
+// --- Itinerary view ---
+
+function ItineraryView({ itinerary, token, apiBase }: { itinerary: Itinerary; token: string; apiBase: string }) {
   const days = getDays(itinerary);
   const [activeDay, setActiveDay] = useState(days[0]);
   const dayEvents = eventsForDay(itinerary.events, activeDay);
 
   return (
     <div>
-      {/* Header */}
       <div style={{ marginBottom: '1.5rem' }}>
         <h1 style={{ fontSize: '1.75rem', fontWeight: 700, color: '#111827', margin: 0 }}>
           {itinerary.title}
@@ -175,18 +367,12 @@ function ItineraryView({ itinerary }: { itinerary: Itinerary }) {
               key={day}
               onClick={() => setActiveDay(day)}
               style={{
-                flexShrink: 0,
-                padding: '0.4rem 1rem',
-                borderRadius: '8px',
+                flexShrink: 0, padding: '0.4rem 1rem', borderRadius: '8px',
                 border: `1px solid ${active ? '#6366f1' : '#e5e7eb'}`,
                 background: active ? '#6366f1' : '#fff',
                 color: active ? '#fff' : '#374151',
-                fontFamily: 'inherit',
-                fontSize: '0.85rem',
-                fontWeight: 500,
-                cursor: 'pointer',
-                textAlign: 'center',
-                lineHeight: 1.4,
+                fontFamily: 'inherit', fontSize: '0.85rem', fontWeight: 500,
+                cursor: 'pointer', textAlign: 'center', lineHeight: 1.4,
               }}
             >
               <span style={{ display: 'block', fontSize: '0.7rem', opacity: 0.8 }}>Day {i + 1}</span>
@@ -204,7 +390,7 @@ function ItineraryView({ itinerary }: { itinerary: Itinerary }) {
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
           {dayEvents.map((event) => (
-            <EventCard key={event.id} event={event} />
+            <EventCard key={event.id} event={event} token={token} apiBase={apiBase} />
           ))}
         </div>
       )}
@@ -215,36 +401,22 @@ function ItineraryView({ itinerary }: { itinerary: Itinerary }) {
 // --- Page ---
 
 export default function Dashboard() {
-  const { itineraries } = useLoaderData<typeof loader>();
+  const { itineraries, token, apiBase } = useLoaderData<typeof loader>();
 
   return (
     <div style={{ minHeight: '100vh', background: '#f9fafb', fontFamily: 'system-ui, sans-serif' }}>
-      {/* Nav */}
-      <header style={{
-        borderBottom: '1px solid #e5e7eb',
-        background: '#fff',
-        padding: '1rem 1.5rem',
-      }}>
-        <div style={{
-          maxWidth: '720px',
-          margin: '0 auto',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-        }}>
+      <header style={{ borderBottom: '1px solid #e5e7eb', background: '#fff', padding: '1rem 1.5rem' }}>
+        <div style={{ maxWidth: '720px', margin: '0 auto', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <span style={{ fontWeight: 700, fontSize: '1.1rem', color: '#111827' }}>travel-it</span>
-          <Link to="/" style={{ fontSize: '0.875rem', color: '#6b7280', textDecoration: 'none' }}>
-            ← Home
-          </Link>
+          <Link to="/" style={{ fontSize: '0.875rem', color: '#6b7280', textDecoration: 'none' }}>← Home</Link>
         </div>
       </header>
 
-      {/* Main */}
       <main style={{ maxWidth: '720px', margin: '0 auto', padding: '2rem 1.5rem' }}>
         {itineraries.length === 0 ? (
           <EmptyState />
         ) : (
-          <ItineraryView itinerary={itineraries[0]} />
+          <ItineraryView itinerary={itineraries[0]} token={token} apiBase={apiBase} />
         )}
       </main>
     </div>

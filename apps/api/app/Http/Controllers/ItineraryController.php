@@ -9,13 +9,13 @@ class ItineraryController extends Controller
 {
     public function index(): JsonResponse
     {
-        $itineraries = Itinerary::with('events')->orderBy('start_date')->get();
+        $itineraries = Itinerary::with('events.media')->orderBy('start_date')->get();
 
         return response()->json(['data' => $itineraries]);
     }
 
     public function show(Itinerary $itinerary): JsonResponse
     {
-        return response()->json(['data' => $itinerary->load('events')]);
+        return response()->json(['data' => $itinerary->load('events.media')]);
     }
 }
