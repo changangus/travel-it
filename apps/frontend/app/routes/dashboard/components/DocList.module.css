@@ -37,3 +37,15 @@
   color: #9ca3af;
   flex-shrink: 0;
 }
+
+.docDownload {
+  font-size: 0.8rem;
+  color: #6b7280;
+  text-decoration: none;
+  flex-shrink: 0;
+  padding: 0 0.2rem;
+}
+
+.docDownload:hover {
+  color: #111;
+}

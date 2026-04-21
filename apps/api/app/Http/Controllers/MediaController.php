@@ -6,6 +6,8 @@ use App\Models\Event;
 use App\Models\Media;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Symfony\Component\HttpFoundation\StreamedResponse;
+use Illuminate\Support\Facades\Storage;
 
 class MediaController extends Controller
 {
@@ -29,6 +31,11 @@ class MediaController extends Controller
         ]);
 
         return response()->json(['data' => $media], 201);
+    }
+
+    public function download(Media $media): StreamedResponse
+    {
+        return Storage::disk('public')->download($media->file_path, $media->file_name);
     }
 
     public function destroy(Request $request, Media $media): JsonResponse

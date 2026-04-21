@@ -31,6 +31,13 @@ export function DocList({ docs, onDelete }: DocListProps) {
               {doc.file_name}
             </a>
             <span className={styles.docSize}>{formatBytes(doc.size_bytes)}</span>
+            <a
+              href={`/resources/media/${doc.id}/download`}
+              download={doc.file_name}
+              className={styles.docDownload}
+            >
+              ↓
+            </a>
             <EllipsisMenu items={[{
               label: 'Delete',
               danger: true,

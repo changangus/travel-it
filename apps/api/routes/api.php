@@ -31,7 +31,9 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::patch('/events/{event}', [EventController::class, 'update']);
     Route::delete('/events/{event}', [EventController::class, 'destroy']);
     Route::post('/events/{event}/media', [MediaController::class, 'store']);
+    Route::get('/media/{media}/download', [MediaController::class, 'download']);
     Route::delete('/media/{media}', [MediaController::class, 'destroy']);
+    Route::get('/events/{event}/media/download-all', [EventController::class, 'downloadAllMedia']);
     Route::put('/events/{event}/note', [EventController::class, 'upsertNote']);
     Route::put('/itineraries/{itinerary}/day-notes', [DayNoteController::class, 'upsert']);
     Route::post('/itineraries/{itinerary}/sync-to-calendar', [GoogleCalendarController::class, 'sync']);

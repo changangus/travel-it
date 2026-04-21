@@ -10,7 +10,7 @@ interface PhotoGridProps {
 }
 
 export function PhotoGrid({ photos, onDelete }: PhotoGridProps) {
-  const [lightbox, setLightbox] = useState<string | null>(null);
+  const [lightbox, setLightbox] = useState<MediaItem | null>(null);
   const [confirmId, setConfirmId] = useState<number | null>(null);
 
   return (
@@ -23,7 +23,7 @@ export function PhotoGrid({ photos, onDelete }: PhotoGridProps) {
           >
             <div
               className={styles.photoWrapper}
-              onClick={() => setLightbox(photo.url)}
+              onClick={() => setLightbox(photo)}
             >
               <img
                 src={photo.url}
@@ -59,10 +59,18 @@ export function PhotoGrid({ photos, onDelete }: PhotoGridProps) {
           className={styles.lightboxBackdrop}
         >
           <img
-            src={lightbox}
-            alt=""
+            src={lightbox.url}
+            alt={lightbox.file_name}
             className={styles.lightboxImg}
           />
+          <a
+            href={`/resources/media/${lightbox.id}/download`}
+            download={lightbox.file_name}
+            onClick={(e) => e.stopPropagation()}
+            className={styles.lightboxDownload}
+          >
+            ↓ Download
+          </a>
         </div>
       )}
     </>

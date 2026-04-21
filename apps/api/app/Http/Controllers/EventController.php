@@ -7,6 +7,9 @@ use App\Models\Itinerary;
 use App\Services\GoogleCalendarService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
+use Symfony\Component\HttpFoundation\StreamedResponse;
+use ZipArchive;
 
 class EventController extends Controller
 {
@@ -70,6 +73,34 @@ class EventController extends Controller
         }
 
         return response()->json(['data' => $event->fresh(['media', 'note'])]);
+    }
+
+    public function downloadAllMedia(Event $event): StreamedResponse
+    {
+        $event->load('media');
+        $slug = str($event->title)->slug()->limit(50);
+        $zipName = "{$slug}-media.zip";
+        $tempPath = sys_get_temp_dir() . '/' . uniqid('media_') . '.zip';
+
+        $zip = new ZipArchive();
+        $zip->open($tempPath, ZipArchive::CREATE | ZipArchive::OVERWRITE);
+
+        foreach ($event->media as $media) {
+            if (str_starts_with($media->file_path, 'http')) {
+                continue;
+            }
+            $absolutePath = Storage::disk('public')->path($media->file_path);
+            if (file_exists($absolutePath)) {
+                $zip->addFile($absolutePath, $media->file_name);
+            }
+        }
+
+        $zip->close();
+
+        return response()->streamDownload(function () use ($tempPath) {
+            readfile($tempPath);
+            @unlink($tempPath);
+        }, $zipName, ['Content-Type' => 'application/zip']);
     }
 
     public function destroy(Request $request, Event $event): JsonResponse

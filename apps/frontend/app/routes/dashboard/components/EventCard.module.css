@@ -154,3 +154,16 @@
   font-size: 0.85rem;
   color: #ef4444;
 }
+
+.downloadAllLink {
+  display: inline-block;
+  margin-top: 0.5rem;
+  font-size: 0.8rem;
+  color: #6b7280;
+  text-decoration: none;
+}
+
+.downloadAllLink:hover {
+  color: #111;
+  text-decoration: underline;
+}

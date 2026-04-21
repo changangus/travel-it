@@ -43,11 +43,32 @@
   align-items: center;
   justify-content: center;
   cursor: zoom-out;
+  /* needed to anchor the download button */
+  isolation: isolate;
 }
 
 .lightboxImg {
   max-width: 90vw;
-  max-height: 90vh;
+  max-height: 85vh;
   border-radius: 8px;
   object-fit: contain;
+}
+
+.lightboxDownload {
+  position: absolute;
+  bottom: 1.5rem;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(255,255,255,0.15);
+  color: #fff;
+  font-size: 0.85rem;
+  padding: 0.4rem 1rem;
+  border-radius: 99px;
+  text-decoration: none;
+  backdrop-filter: blur(4px);
+  border: 1px solid rgba(255,255,255,0.3);
+}
+
+.lightboxDownload:hover {
+  background: rgba(255,255,255,0.25);
 }

@@ -132,6 +132,15 @@ export function EventCard({
           {photos.length > 0 && <PhotoGrid photos={photos} onDelete={handleMediaDelete} />}
           {docs.length > 0 && <DocList docs={docs} onDelete={handleMediaDelete} />}
           <UploadButton eventId={event.id} token={token} apiBase={apiBase} onUploaded={(m) => setMedia((prev) => [...prev, m])} />
+          {media.length > 1 && (
+            <a
+              href={`/resources/events/${event.id}/download-all`}
+              download
+              className={styles.downloadAllLink}
+            >
+              ↓ Download all media
+            </a>
+          )}
           {syncError && (
             <p className={styles.itineraryError}>{syncError}</p>
           )}
