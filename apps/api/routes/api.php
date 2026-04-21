@@ -7,6 +7,7 @@ use App\Http\Controllers\Auth\GoogleController;
 use App\Http\Controllers\ItineraryController;
 use App\Http\Controllers\EventController;
 use App\Http\Controllers\GoogleCalendarController;
+use App\Http\Controllers\DayNoteController;
 use App\Http\Controllers\MediaController;
 
 Route::get('/health', function () {
@@ -31,6 +32,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::delete('/events/{event}', [EventController::class, 'destroy']);
     Route::post('/events/{event}/media', [MediaController::class, 'store']);
     Route::delete('/media/{media}', [MediaController::class, 'destroy']);
+    Route::put('/events/{event}/note', [EventController::class, 'upsertNote']);
+    Route::put('/itineraries/{itinerary}/day-notes', [DayNoteController::class, 'upsert']);
     Route::post('/itineraries/{itinerary}/sync-to-calendar', [GoogleCalendarController::class, 'sync']);
     Route::post('/events/{event}/sync-to-calendar', [GoogleCalendarController::class, 'syncEvent']);
 });

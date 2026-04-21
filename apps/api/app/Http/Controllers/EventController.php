@@ -24,7 +24,7 @@ class EventController extends Controller
         $data = $request->validate($this->rules);
 
         $event = $itinerary->events()->create($data);
-        $event->load('media');
+        $event->load(['media', 'note']);
 
         return response()->json(['data' => $event], 201);
     }
@@ -34,7 +34,7 @@ class EventController extends Controller
         $data = $request->validate($this->rules);
 
         $event->update($data);
-        $event->load('media');
+        $event->load(['media', 'note']);
 
         $calendarSynced = true;
         if ($event->is_synced && $event->google_event_id) {
@@ -46,12 +46,30 @@ class EventController extends Controller
             }
         }
 
-        $response = ['data' => $event->fresh('media')];
+        $response = ['data' => $event->fresh(['media', 'note'])];
         if (!$calendarSynced) {
             $response['calendar_sync'] = false;
         }
 
         return response()->json($response);
+    }
+
+    public function upsertNote(Request $request, Event $event): JsonResponse
+    {
+        $data = $request->validate(['content' => 'nullable|string']);
+
+        $content = $data['content'] ?? null;
+
+        if ($content === null || $content === '') {
+            $event->note?->delete();
+        } else {
+            $event->note()->updateOrCreate(
+                ['event_id' => $event->id],
+                ['content' => $content]
+            );
+        }
+
+        return response()->json(['data' => $event->fresh(['media', 'note'])]);
     }
 
     public function destroy(Request $request, Event $event): JsonResponse

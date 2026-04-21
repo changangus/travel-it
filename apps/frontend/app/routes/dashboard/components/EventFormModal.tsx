@@ -36,6 +36,7 @@ export function EventFormModal({
   const [endAt, setEndAt] = useState(event ? toDatetimeLocalInTz(event.end_at, timezone) : '');
   const [location, setLocation] = useState(event?.location ?? '');
   const [description, setDescription] = useState(event?.description ?? '');
+  const [note, setNote] = useState(event?.note?.content ?? '');
   const [saving, setSaving] = useState(false);
   const [isClosing, setIsClosing] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -73,17 +74,37 @@ export function EventFormModal({
       body: JSON.stringify(body),
     });
 
-    setSaving(false);
-
     if (!res.ok) {
+      setSaving(false);
       const json = await res.json().catch(() => ({}));
       setError(json?.message ?? 'Something went wrong. Please try again.');
       return;
     }
 
-    const { data } = await res.json();
+    const { data: savedEvent } = await res.json();
+
+    // Save note if it changed
+    const existingNote = event?.note?.content ?? '';
+    let finalEvent = savedEvent;
+    if (note !== existingNote) {
+      const noteRes = await fetch(`${apiBase}/api/events/${savedEvent.id}/note`, {
+        method: 'PUT',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+          Accept: 'application/json',
+        },
+        body: JSON.stringify({ content: note }),
+      });
+      if (noteRes.ok) {
+        const { data } = await noteRes.json();
+        finalEvent = data;
+      }
+    }
+
+    setSaving(false);
     setIsClosing(true);
-    setTimeout(() => onSaved(data), 250);
+    setTimeout(() => onSaved(finalEvent), 250);
   };
 
   return (
@@ -175,6 +196,17 @@ export function EventFormModal({
               onChange={(e) => setDescription(e.target.value)}
               rows={3}
               placeholder="Optional notes…"
+              className={styles.textarea}
+            />
+          </div>
+
+          <div>
+            <label className={styles.label}>Journal notes</label>
+            <textarea
+              value={note}
+              onChange={(e) => setNote(e.target.value)}
+              rows={4}
+              placeholder="Personal reflections about this event…"
               className={styles.textarea}
             />
           </div>

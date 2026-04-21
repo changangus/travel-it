@@ -9,6 +9,17 @@ export interface MediaItem {
   url: string;
 }
 
+export interface EventNote {
+  id: number;
+  content: string;
+}
+
+export interface DayNote {
+  id: number;
+  date: string;
+  content: string;
+}
+
 export interface TripEvent {
   id: number;
   title: string;
@@ -20,6 +31,7 @@ export interface TripEvent {
   google_event_id: string | null;
   is_synced: boolean;
   media: MediaItem[];
+  note: EventNote | null;
 }
 
 export interface Itinerary {
@@ -31,4 +43,5 @@ export interface Itinerary {
   end_date: string;
   timezone: string;
   events: TripEvent[];
+  day_notes: DayNote[];
 }

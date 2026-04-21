@@ -18,4 +18,9 @@ class Itinerary extends Model
     {
         return $this->hasMany(Event::class)->orderBy('start_at');
     }
+
+    public function dayNotes(): HasMany
+    {
+        return $this->hasMany(DayNote::class)->orderBy('date');
+    }
 }

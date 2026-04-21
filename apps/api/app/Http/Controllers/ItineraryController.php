@@ -11,7 +11,7 @@ class ItineraryController extends Controller
 {
     public function index(Request $request): JsonResponse
     {
-        $itineraries = Itinerary::with('events.media')->orderBy('start_date')->get();
+        $itineraries = Itinerary::with(['events.media', 'events.note', 'dayNotes'])->orderBy('start_date')->get();
 
         // If the user has calendar access, verify synced events still exist in Google Calendar
         try {
@@ -36,14 +36,14 @@ class ItineraryController extends Controller
         }
 
         // Reload to reflect any sync status changes
-        $itineraries->load('events.media');
+        $itineraries->load(['events.media', 'events.note', 'dayNotes']);
 
         return response()->json(['data' => $itineraries]);
     }
 
     public function show(Itinerary $itinerary): JsonResponse
     {
-        return response()->json(['data' => $itinerary->load('events.media')]);
+        return response()->json(['data' => $itinerary->load(['events.media', 'events.note', 'dayNotes'])]);
     }
 
     public function update(Request $request, Itinerary $itinerary): JsonResponse

@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import type { Itinerary, TripEvent } from '../dashboard.types';
+import { useState, useEffect, useRef } from 'react';
+import type { DayNote, Itinerary, TripEvent } from '../dashboard.types';
 import { COMMON_TIMEZONES } from '../dashboard.constants';
 import { getDays, formatDayLabel, eventsForDay } from '../dashboard.utils';
 import { EventCard } from './EventCard';
@@ -21,6 +21,11 @@ export function ItineraryView({ itinerary, token, apiBase }: ItineraryViewProps)
   const [syncError, setSyncError] = useState<string | null>(null);
   const [timezone, setTimezone] = useState(itinerary.timezone || 'UTC');
   const [tzSaving, setTzSaving] = useState(false);
+  const [dayNotes, setDayNotes] = useState<DayNote[]>(itinerary.day_notes);
+  const [dayNoteText, setDayNoteText] = useState(
+    () => itinerary.day_notes.find((n) => n.date === days[0])?.content ?? ''
+  );
+  const dayNoteTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const unsyncedCount = events.filter((e) => !e.is_synced).length;
 
@@ -56,6 +61,37 @@ export function ItineraryView({ itinerary, token, apiBase }: ItineraryViewProps)
       body: JSON.stringify({ timezone: tz }),
     });
     setTzSaving(false);
+  };
+
+  // Sync textarea content when switching days
+  useEffect(() => {
+    setDayNoteText(dayNotes.find((n) => n.date === activeDay)?.content ?? '');
+  }, [activeDay]);
+
+  const handleDayNoteChange = (content: string) => {
+    setDayNoteText(content);
+    if (dayNoteTimer.current) clearTimeout(dayNoteTimer.current);
+    dayNoteTimer.current = setTimeout(async () => {
+      const res = await fetch(`${apiBase}/api/itineraries/${itinerary.id}/day-notes`, {
+        method: 'PUT',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+          Accept: 'application/json',
+        },
+        body: JSON.stringify({ date: activeDay, content }),
+      });
+      if (res.ok) {
+        const { data } = await res.json();
+        setDayNotes((prev) => {
+          if (data === null) return prev.filter((n) => n.date !== activeDay);
+          const exists = prev.find((n) => n.date === activeDay);
+          return exists
+            ? prev.map((n) => (n.date === activeDay ? data : n))
+            : [...prev, data];
+        });
+      }
+    }, 500);
   };
 
   const dayEvents = eventsForDay(events, activeDay, timezone).sort(
@@ -139,6 +175,17 @@ export function ItineraryView({ itinerary, token, apiBase }: ItineraryViewProps)
             </button>
           );
         })}
+      </div>
+
+      <div className={styles.dayNoteSection}>
+        <label className={styles.dayNoteLabel}>Day notes</label>
+        <textarea
+          className={styles.dayNoteTextarea}
+          rows={3}
+          placeholder="Write a journal entry for this day…"
+          value={dayNoteText}
+          onChange={(e) => handleDayNoteChange(e.target.value)}
+        />
       </div>
 
       <div className={styles.eventsList}>

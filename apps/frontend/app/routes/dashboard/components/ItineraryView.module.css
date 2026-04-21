@@ -171,3 +171,42 @@
   font-family: inherit;
   cursor: pointer;
 }
+
+.dayNoteSection {
+  margin-bottom: 1.25rem;
+}
+
+.dayNoteLabel {
+  display: block;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #9ca3af;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 0.4rem;
+}
+
+.dayNoteTextarea {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 0.65rem 0.75rem;
+  border-radius: 10px;
+  border: 1px solid #e5e7eb;
+  background: #fafafa;
+  font-family: inherit;
+  font-size: 0.9rem;
+  color: #374151;
+  line-height: 1.6;
+  resize: vertical;
+  transition: border-color 0.15s;
+}
+
+.dayNoteTextarea:focus {
+  outline: none;
+  border-color: #6366f1;
+  background: #fff;
+}
+
+.dayNoteTextarea::placeholder {
+  color: #d1d5db;
+}
