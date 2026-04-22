@@ -28,6 +28,8 @@ jobs:
           host: ${{ secrets.DEPLOY_HOST }}
           username: ${{ secrets.DEPLOY_USER }}
           key: ${{ secrets.DEPLOY_SSH_KEY }}
+          port: 22
+          timeout: 60s
           source: "apps/frontend/build/"
           target: "~/travel-it/"
 
