@@ -1,0 +1,39 @@
+name: Deploy
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    needs: []
+    steps:
+      - name: Deploy to VM
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          script: |
+            set -e
+            cd ~/travel-it
+            git pull
+
+            # API
+            cd apps/api
+            composer install --no-dev --optimize-autoloader
+            php artisan migrate --force
+            php artisan config:cache
+            php artisan route:cache
+            sudo chown -R www-data:www-data storage bootstrap/cache database
+            sudo chmod -R 775 storage bootstrap/cache
+            sudo chmod 664 database/database.sqlite
+
+            # Frontend
+            cd ~/travel-it
+            npm ci
+            cd apps/frontend
+            npx remix vite:build
+            pm2 restart frontend

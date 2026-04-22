@@ -24,7 +24,7 @@ class GoogleController extends Controller
         $allowedEmails = ['changangus2@gmail.com', 'anniesmunro@gmail.com'];
 
         if (!in_array($googleUser->getEmail(), $allowedEmails)) {
-            $frontendUrl = env('FRONTEND_URL', 'http://localhost:5173');
+            $frontendUrl = config('app.frontend_url');
             return redirect("{$frontendUrl}/login?error=unauthorized");
         }
 
@@ -46,7 +46,7 @@ class GoogleController extends Controller
         ]);
 
         $token = $user->createToken('auth_token')->plainTextToken;
-        $frontendUrl = env('FRONTEND_URL', 'http://localhost:5173');
+        $frontendUrl = config('app.frontend_url');
 
         return redirect("{$frontendUrl}/auth/callback?token=" . urlencode($token));
     }
