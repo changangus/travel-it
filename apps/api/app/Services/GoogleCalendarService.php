@@ -8,22 +8,24 @@ use Google\Client;
 use Google\Service\Calendar;
 use Google\Service\Calendar\Event as GoogleEvent;
 use Google\Service\Calendar\EventDateTime;
+use Google\Service\Exception;
 use RuntimeException;
 
 class GoogleCalendarService
 {
     private Calendar $calendar;
+
     private User $user;
 
     public function __construct(User $user)
     {
-        if (!$user->google_refresh_token) {
+        if (! $user->google_refresh_token) {
             throw new RuntimeException('no_calendar_token');
         }
 
         $this->user = $user;
 
-        $client = new Client();
+        $client = new Client;
         $client->setClientId(config('services.google.client_id'));
         $client->setClientSecret(config('services.google.client_secret'));
         $client->setAccessType('offline');
@@ -57,6 +59,7 @@ class GoogleCalendarService
     {
         $googleEvent = $this->buildGoogleEvent($event);
         $created = $this->calendar->events->insert('primary', $googleEvent);
+
         return $created->getId();
     }
 
@@ -78,8 +81,9 @@ class GoogleCalendarService
     {
         try {
             $event = $this->calendar->events->get('primary', $googleEventId);
+
             return $event->getStatus() !== 'cancelled';
-        } catch (\Google\Service\Exception $e) {
+        } catch (Exception $e) {
             if ($e->getCode() === 404 || $e->getCode() === 410) {
                 return false;
             }
@@ -89,7 +93,7 @@ class GoogleCalendarService
 
     private function buildGoogleEvent(Event $event): GoogleEvent
     {
-        $googleEvent = new GoogleEvent();
+        $googleEvent = new GoogleEvent;
         $googleEvent->setSummary($event->title);
 
         if ($event->description) {
@@ -100,8 +104,8 @@ class GoogleCalendarService
             $googleEvent->setLocation($event->location);
         }
 
-        $start = new EventDateTime();
-        $end = new EventDateTime();
+        $start = new EventDateTime;
+        $end = new EventDateTime;
 
         if ($event->end_at) {
             $start->setDateTime($event->start_at->toRfc3339String());

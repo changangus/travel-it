@@ -23,7 +23,7 @@ class ItineraryController extends Controller
                     ->whereNotNull('google_event_id')
                     ->each(function ($event) use ($service) {
                         try {
-                            if (!$service->eventExists($event->google_event_id)) {
+                            if (! $service->eventExists($event->google_event_id)) {
                                 $event->update(['is_synced' => false, 'google_event_id' => null]);
                             }
                         } catch (\Exception) {

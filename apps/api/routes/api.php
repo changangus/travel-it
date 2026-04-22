@@ -1,14 +1,14 @@
 <?php
 
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Auth\GoogleController;
-use App\Http\Controllers\ItineraryController;
+use App\Http\Controllers\Auth\LoginController;
+use App\Http\Controllers\DayNoteController;
 use App\Http\Controllers\EventController;
 use App\Http\Controllers\GoogleCalendarController;
-use App\Http\Controllers\DayNoteController;
+use App\Http\Controllers\ItineraryController;
 use App\Http\Controllers\MediaController;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Route;
 
 Route::get('/health', function () {
     return response()->json(['status' => 'ok']);

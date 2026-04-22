@@ -14,11 +14,11 @@ use ZipArchive;
 class EventController extends Controller
 {
     private array $rules = [
-        'title'       => 'required|string|max:255',
-        'type'        => 'required|in:activity,transport,accommodation',
-        'start_at'    => 'required|date',
-        'end_at'      => 'nullable|date|after:start_at',
-        'location'    => 'nullable|string|max:255',
+        'title' => 'required|string|max:255',
+        'type' => 'required|in:activity,transport,accommodation',
+        'start_at' => 'required|date',
+        'end_at' => 'nullable|date|after:start_at',
+        'location' => 'nullable|string|max:255',
         'description' => 'nullable|string',
     ];
 
@@ -50,7 +50,7 @@ class EventController extends Controller
         }
 
         $response = ['data' => $event->fresh(['media', 'note'])];
-        if (!$calendarSynced) {
+        if (! $calendarSynced) {
             $response['calendar_sync'] = false;
         }
 
@@ -80,9 +80,9 @@ class EventController extends Controller
         $event->load('media');
         $slug = str($event->title)->slug()->limit(50);
         $zipName = "{$slug}-media.zip";
-        $tempPath = sys_get_temp_dir() . '/' . uniqid('media_') . '.zip';
+        $tempPath = sys_get_temp_dir().'/'.uniqid('media_').'.zip';
 
-        $zip = new ZipArchive();
+        $zip = new ZipArchive;
         $zip->open($tempPath, ZipArchive::CREATE | ZipArchive::OVERWRITE);
 
         foreach ($event->media as $media) {

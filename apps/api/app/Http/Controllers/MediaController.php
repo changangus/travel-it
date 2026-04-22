@@ -6,8 +6,8 @@ use App\Models\Event;
 use App\Models\Media;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Symfony\Component\HttpFoundation\StreamedResponse;
 use Illuminate\Support\Facades\Storage;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class MediaController extends Controller
 {
@@ -22,11 +22,11 @@ class MediaController extends Controller
         $path = $file->store("events/{$event->id}", 'public');
 
         $media = $event->media()->create([
-            'user_id'    => $request->user()->id,
-            'type'       => $type,
-            'file_name'  => $file->getClientOriginalName(),
-            'file_path'  => $path,
-            'mime_type'  => $file->getMimeType(),
+            'user_id' => $request->user()->id,
+            'type' => $type,
+            'file_name' => $file->getClientOriginalName(),
+            'file_path' => $path,
+            'mime_type' => $file->getMimeType(),
             'size_bytes' => $file->getSize(),
         ]);
 

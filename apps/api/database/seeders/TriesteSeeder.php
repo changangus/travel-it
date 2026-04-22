@@ -36,12 +36,12 @@ class TriesteSeeder extends Seeder
 
         // Train ticket (mock document)
         Media::create([
-            'event_id'   => $train1->id,
-            'user_id'    => $user->id,
-            'type'       => 'document',
-            'file_name'  => 'train-ticket-MXP-TRS.pdf',
-            'file_path'  => 'https://www.w3.org/WAI/WCAG21/Techniques/pdf/img/table-word.jpg', // placeholder
-            'mime_type'  => 'application/pdf',
+            'event_id' => $train1->id,
+            'user_id' => $user->id,
+            'type' => 'document',
+            'file_name' => 'train-ticket-MXP-TRS.pdf',
+            'file_path' => 'https://www.w3.org/WAI/WCAG21/Techniques/pdf/img/table-word.jpg', // placeholder
+            'mime_type' => 'application/pdf',
             'size_bytes' => 142080,
         ]);
 
@@ -56,12 +56,12 @@ class TriesteSeeder extends Seeder
         ]);
 
         Media::create([
-            'event_id'   => $lunch1->id,
-            'user_id'    => $user->id,
-            'type'       => 'photo',
-            'file_name'  => 'buffet-da-pepi-interior.jpg',
-            'file_path'  => 'https://picsum.photos/seed/pepi1/800/600',
-            'mime_type'  => 'image/jpeg',
+            'event_id' => $lunch1->id,
+            'user_id' => $user->id,
+            'type' => 'photo',
+            'file_name' => 'buffet-da-pepi-interior.jpg',
+            'file_path' => 'https://picsum.photos/seed/pepi1/800/600',
+            'mime_type' => 'image/jpeg',
             'size_bytes' => 318000,
         ]);
 
@@ -77,24 +77,24 @@ class TriesteSeeder extends Seeder
 
         foreach (['museum1', 'museum2', 'museum3'] as $seed) {
             Media::create([
-                'event_id'   => $museum->id,
-                'user_id'    => $user->id,
-                'type'       => 'photo',
-                'file_name'  => "{$seed}.jpg",
-                'file_path'  => "https://picsum.photos/seed/{$seed}/800/600",
-                'mime_type'  => 'image/jpeg',
+                'event_id' => $museum->id,
+                'user_id' => $user->id,
+                'type' => 'photo',
+                'file_name' => "{$seed}.jpg",
+                'file_path' => "https://picsum.photos/seed/{$seed}/800/600",
+                'mime_type' => 'image/jpeg',
                 'size_bytes' => rand(280000, 420000),
             ]);
         }
 
         // Museum entry ticket
         Media::create([
-            'event_id'   => $museum->id,
-            'user_id'    => $user->id,
-            'type'       => 'document',
-            'file_name'  => 'museo-revoltella-tickets.pdf',
-            'file_path'  => 'https://www.w3.org/WAI/WCAG21/Techniques/pdf/img/table-word.jpg', // placeholder
-            'mime_type'  => 'application/pdf',
+            'event_id' => $museum->id,
+            'user_id' => $user->id,
+            'type' => 'document',
+            'file_name' => 'museo-revoltella-tickets.pdf',
+            'file_path' => 'https://www.w3.org/WAI/WCAG21/Techniques/pdf/img/table-word.jpg', // placeholder
+            'mime_type' => 'application/pdf',
             'size_bytes' => 89400,
         ]);
 
@@ -110,12 +110,12 @@ class TriesteSeeder extends Seeder
 
         foreach (['dinner1', 'dinner2'] as $seed) {
             Media::create([
-                'event_id'   => $dinner->id,
-                'user_id'    => $user->id,
-                'type'       => 'photo',
-                'file_name'  => "{$seed}.jpg",
-                'file_path'  => "https://picsum.photos/seed/{$seed}/800/600",
-                'mime_type'  => 'image/jpeg',
+                'event_id' => $dinner->id,
+                'user_id' => $user->id,
+                'type' => 'photo',
+                'file_name' => "{$seed}.jpg",
+                'file_path' => "https://picsum.photos/seed/{$seed}/800/600",
+                'mime_type' => 'image/jpeg',
                 'size_bytes' => rand(260000, 380000),
             ]);
         }
@@ -144,12 +144,12 @@ class TriesteSeeder extends Seeder
 
         foreach (['castle1', 'castle2', 'castle3', 'castle4'] as $seed) {
             Media::create([
-                'event_id'   => $castle->id,
-                'user_id'    => $user->id,
-                'type'       => 'photo',
-                'file_name'  => "{$seed}.jpg",
-                'file_path'  => "https://picsum.photos/seed/{$seed}/800/600",
-                'mime_type'  => 'image/jpeg',
+                'event_id' => $castle->id,
+                'user_id' => $user->id,
+                'type' => 'photo',
+                'file_name' => "{$seed}.jpg",
+                'file_path' => "https://picsum.photos/seed/{$seed}/800/600",
+                'mime_type' => 'image/jpeg',
                 'size_bytes' => rand(300000, 450000),
             ]);
         }

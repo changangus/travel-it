@@ -61,6 +61,7 @@ class GoogleCalendarController extends Controller
 
         if ($event->is_synced) {
             $event->load('media');
+
             return response()->json(['data' => $event]);
         }
 

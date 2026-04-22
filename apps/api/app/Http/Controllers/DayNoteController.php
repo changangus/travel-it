@@ -11,7 +11,7 @@ class DayNoteController extends Controller
     public function upsert(Request $request, Itinerary $itinerary): JsonResponse
     {
         $data = $request->validate([
-            'date'    => 'required|date_format:Y-m-d',
+            'date' => 'required|date_format:Y-m-d',
             'content' => 'nullable|string',
         ]);
 
@@ -19,6 +19,7 @@ class DayNoteController extends Controller
 
         if ($content === null || $content === '') {
             $itinerary->dayNotes()->where('date', $data['date'])->delete();
+
             return response()->json(['data' => null]);
         }
 
