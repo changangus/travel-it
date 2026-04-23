@@ -1,0 +1,94 @@
+.banner {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  height: 36px;
+  border-radius: 8px;
+  border: 1px solid transparent;
+  padding-right: 0.5rem;
+  overflow: hidden;
+  font-size: 0.8rem;
+}
+
+.accentStripe {
+  width: 4px;
+  align-self: stretch;
+  flex-shrink: 0;
+}
+
+.icon {
+  font-size: 0.95rem;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.title {
+  font-weight: 600;
+  color: #111827;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex: 1;
+  min-width: 0;
+}
+
+.label {
+  font-size: 0.75rem;
+  color: #6b7280;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.actions {
+  flex-shrink: 0;
+}
+
+/* Per-type color variants */
+
+.banner_accommodation {
+  background: #ecfdf5;
+  border-color: rgba(16, 185, 129, 0.2);
+}
+.banner_accommodation .accentStripe {
+  background: #10b981;
+}
+
+.banner_flight {
+  background: #f0f9ff;
+  border-color: rgba(14, 165, 233, 0.2);
+}
+.banner_flight .accentStripe {
+  background: #0ea5e9;
+}
+
+.banner_train {
+  background: #fff7ed;
+  border-color: rgba(249, 115, 22, 0.2);
+}
+.banner_train .accentStripe {
+  background: #f97316;
+}
+
+.banner_transport {
+  background: #eff6ff;
+  border-color: rgba(59, 130, 246, 0.2);
+}
+.banner_transport .accentStripe {
+  background: #3b82f6;
+}
+
+.banner_activity {
+  background: #fffbeb;
+  border-color: rgba(245, 158, 11, 0.2);
+}
+.banner_activity .accentStripe {
+  background: #f59e0b;
+}
+
+.banner_synced {
+  background: #f5f3ff;
+  border-color: rgba(139, 92, 246, 0.2);
+}
+.banner_synced .accentStripe {
+  background: #8b5cf6;
+}

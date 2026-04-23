@@ -56,6 +56,23 @@ export function eventsForDay(events: TripEvent[], day: string, tz: string) {
   return events.filter((e) => dateParts(e.start_at, tz) === day);
 }
 
+// True if the event's end_at falls on a different calendar day than start_at
+export function isMultiDay(event: TripEvent, tz: string): boolean {
+  if (!event.end_at) return false;
+  return dateParts(event.start_at, tz) !== dateParts(event.end_at, tz);
+}
+
+// Events that started before `day` but whose end_at is on or after `day`
+// (mutually exclusive with eventsForDay for any given event+day pair)
+export function spanningEventsForDay(events: TripEvent[], day: string, tz: string): TripEvent[] {
+  return events.filter((e) => {
+    if (!e.end_at) return false;
+    const startDay = dateParts(e.start_at, tz);
+    const endDay = dateParts(e.end_at, tz);
+    return startDay < day && day <= endDay;
+  });
+}
+
 // Convert a UTC datetime string to the value for <input type="datetime-local">
 // interpreted in the destination timezone (so the user sees/edits local trip times).
 export function toDatetimeLocalInTz(dateStr: string | null, tz: string): string {

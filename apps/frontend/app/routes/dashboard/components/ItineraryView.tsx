@@ -1,8 +1,9 @@
 import { useState, useEffect, useRef } from 'react';
 import type { DayNote, Itinerary, TripEvent } from '../dashboard.types';
 import { COMMON_TIMEZONES } from '../dashboard.constants';
-import { getDays, formatDayLabel, eventsForDay } from '../dashboard.utils';
+import { getDays, formatDayLabel, eventsForDay, spanningEventsForDay, isMultiDay } from '../dashboard.utils';
 import { EventCard } from './EventCard';
+import { SpanningEventBanner } from './SpanningEventBanner';
 import { EventFormModal } from './EventFormModal';
 import { EllipsisMenu } from './EllipsisMenu';
 import styles from './ItineraryView.module.css';
@@ -103,6 +104,10 @@ export function ItineraryView({ itinerary, token, apiBase, onEditTrip }: Itinera
   };
 
   const dayEvents = eventsForDay(events, activeDay, timezone).sort(
+    (a, b) => new Date(a.start_at).getTime() - new Date(b.start_at).getTime()
+  );
+
+  const spanningEvents = spanningEventsForDay(events, activeDay, timezone).sort(
     (a, b) => new Date(a.start_at).getTime() - new Date(b.start_at).getTime()
   );
 
@@ -211,7 +216,21 @@ export function ItineraryView({ itinerary, token, apiBase, onEditTrip }: Itinera
       </div>
 
       <div className={styles.eventsList}>
-        {dayEvents.length === 0 ? (
+        {spanningEvents.map((event) => (
+          <SpanningEventBanner
+            key={event.id}
+            event={event}
+            day={activeDay}
+            timezone={timezone}
+            use24h={use24h}
+            token={token}
+            apiBase={apiBase}
+            onEdit={() => setModalEvent(event)}
+            onDeleted={handleDeleted}
+          />
+        ))}
+
+        {dayEvents.length === 0 && spanningEvents.length === 0 ? (
           <p className={styles.emptyDayText}>
             Nothing planned for this day.
           </p>
@@ -227,6 +246,7 @@ export function ItineraryView({ itinerary, token, apiBase, onEditTrip }: Itinera
               onEdit={() => setModalEvent(event)}
               onDeleted={handleDeleted}
               onSynced={handleSaved}
+              isCheckin={isMultiDay(event, timezone)}
             />
           ))
         )}
@@ -234,7 +254,7 @@ export function ItineraryView({ itinerary, token, apiBase, onEditTrip }: Itinera
         <button
           onClick={() => setModalEvent('new')}
           className={styles.addEventBtn}
-          style={{ marginTop: dayEvents.length === 0 ? 0 : '0.25rem' }}
+          style={{ marginTop: (dayEvents.length === 0 && spanningEvents.length === 0) ? 0 : '0.25rem' }}
         >
           + Add event
         </button>

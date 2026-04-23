@@ -18,6 +18,7 @@ interface EventCardProps {
   onEdit: () => void;
   onDeleted: (id: number) => void;
   onSynced: (event: TripEvent) => void;
+  isCheckin?: boolean;
 }
 
 export function EventCard({
@@ -29,6 +30,7 @@ export function EventCard({
   onEdit,
   onDeleted,
   onSynced,
+  isCheckin = false,
 }: EventCardProps) {
   const s = TYPE_STYLES[event.type] ?? TYPE_STYLES.activity;
   const [media, setMedia] = useState<MediaItem[]>(event.media);
@@ -114,8 +116,15 @@ export function EventCard({
               )}
             </div>
             <div className={styles.eventMeta}>
-              {formatTime(event.start_at, timezone, use24h)}
-              {event.end_at && ` – ${formatTime(event.end_at, timezone, use24h)}`}
+              {isCheckin && event.type === 'accommodation'
+                ? `Check in · ${formatTime(event.start_at, timezone, use24h)}`
+                : (
+                  <>
+                    {formatTime(event.start_at, timezone, use24h)}
+                    {event.end_at && !isCheckin && ` – ${formatTime(event.end_at, timezone, use24h)}`}
+                  </>
+                )
+              }
               {event.location && <span className={styles.eventLocation}> · {event.location}</span>}
             </div>
             {event.description && (
