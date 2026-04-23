@@ -25,6 +25,24 @@
   color: #111827;
 }
 
+.headerActions {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.newTripBtn {
+  padding: 0.45rem 0.9rem;
+  border-radius: 8px;
+  border: none;
+  background: #6366f1;
+  color: #fff;
+  font-size: 0.875rem;
+  font-family: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
 .homeLink {
   font-size: 0.875rem;
   color: #6b7280;
@@ -35,4 +53,39 @@
   max-width: 720px;
   margin: 0 auto;
   padding: 2rem 1.5rem;
+}
+
+.tripSwitcher {
+  display: flex;
+  gap: 0.5rem;
+  overflow-x: auto;
+  margin-bottom: 1.5rem;
+  padding-bottom: 0.25rem;
+}
+
+.tripBtn {
+  flex-shrink: 0;
+  padding: 0.45rem 0.9rem;
+  border-radius: 8px;
+  border: 1px solid #e5e7eb;
+  background: #fff;
+  color: #374151;
+  font-size: 0.875rem;
+  font-family: inherit;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.tripBtnActive {
+  flex-shrink: 0;
+  padding: 0.45rem 0.9rem;
+  border-radius: 8px;
+  border: 1px solid #6366f1;
+  background: #6366f1;
+  color: #fff;
+  font-size: 0.875rem;
+  font-family: inherit;
+  cursor: pointer;
+  white-space: nowrap;
+  font-weight: 600;
 }

@@ -4,22 +4,28 @@ import { COMMON_TIMEZONES } from '../dashboard.constants';
 import { getDays, formatDayLabel, eventsForDay } from '../dashboard.utils';
 import { EventCard } from './EventCard';
 import { EventFormModal } from './EventFormModal';
+import { EllipsisMenu } from './EllipsisMenu';
 import styles from './ItineraryView.module.css';
 
 interface ItineraryViewProps {
   itinerary: Itinerary;
   token: string;
   apiBase: string;
+  onEditTrip: () => void;
 }
 
-export function ItineraryView({ itinerary, token, apiBase }: ItineraryViewProps) {
+export function ItineraryView({ itinerary, token, apiBase, onEditTrip }: ItineraryViewProps) {
   const days = getDays(itinerary);
-  const [activeDay, setActiveDay] = useState(days[0]);
+  const [timezone, setTimezone] = useState(itinerary.timezone || 'UTC');
+  const today = new Intl.DateTimeFormat('en-CA', {
+    timeZone: timezone,
+    year: 'numeric', month: '2-digit', day: '2-digit',
+  }).format(new Date());
+  const [activeDay, setActiveDay] = useState(days.includes(today) ? today : days[0]);
   const [events, setEvents] = useState<TripEvent[]>(itinerary.events);
   const [modalEvent, setModalEvent] = useState<TripEvent | null | 'new'>(null);
   const [syncing, setSyncing] = useState(false);
   const [syncError, setSyncError] = useState<string | null>(null);
-  const [timezone, setTimezone] = useState(itinerary.timezone || 'UTC');
   const [tzSaving, setTzSaving] = useState(false);
   const [dayNotes, setDayNotes] = useState<DayNote[]>(itinerary.day_notes);
   const [dayNoteText, setDayNoteText] = useState(
@@ -62,6 +68,15 @@ export function ItineraryView({ itinerary, token, apiBase }: ItineraryViewProps)
     });
     setTzSaving(false);
   };
+
+  // When timezone changes, re-resolve today and switch to it if it's within the trip
+  useEffect(() => {
+    const todayInTz = new Intl.DateTimeFormat('en-CA', {
+      timeZone: timezone,
+      year: 'numeric', month: '2-digit', day: '2-digit',
+    }).format(new Date());
+    if (days.includes(todayInTz)) setActiveDay(todayInTz);
+  }, [timezone]);
 
   // Sync textarea content when switching days
   useEffect(() => {
@@ -119,15 +134,15 @@ export function ItineraryView({ itinerary, token, apiBase }: ItineraryViewProps)
           <h1 className={styles.itineraryTitle}>
             {itinerary.title}
           </h1>
-          <button
-            onClick={handleSync}
-            disabled={syncing || unsyncedCount === 0}
-            title={unsyncedCount === 0 ? 'All events synced' : `Sync ${unsyncedCount} event${unsyncedCount !== 1 ? 's' : ''} to Google Calendar`}
-            className={unsyncedCount === 0 ? styles.syncBtnSynced : styles.syncBtn}
-            style={{ opacity: syncing ? 0.7 : 1 }}
-          >
-            {syncing ? '⏳ Syncing…' : unsyncedCount === 0 ? '📅 Synced' : '📅 Sync to Calendar'}
-          </button>
+          <div className={styles.itineraryActions}>
+          <EllipsisMenu items={[
+            {
+              label: syncing ? '⏳ Syncing…' : unsyncedCount === 0 ? '📅 All synced' : `📅 Sync to Calendar (${unsyncedCount})`,
+              onClick: unsyncedCount === 0 || syncing ? () => {} : handleSync,
+            },
+            { label: 'Edit trip', onClick: onEditTrip },
+          ]} />
+          </div>
         </div>
         <p className={styles.itineraryMeta}>
           {itinerary.destination} ·{' '}
@@ -147,7 +162,7 @@ export function ItineraryView({ itinerary, token, apiBase }: ItineraryViewProps)
         )}
 
         <div className={styles.timezoneContainer}>
-          <span className={styles.timezoneLabel}>🌍 Timezone:</span>
+          <label className={styles.timezoneLabel}>Timezone</label>
           <select
             value={timezone}
             onChange={(e) => handleTimezoneChange(e.target.value)}

@@ -16,6 +16,14 @@
   margin: 0;
 }
 
+.itineraryActions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-shrink: 0;
+}
+
+
 .syncBtn {
   flex-shrink: 0;
   display: inline-flex;
@@ -74,25 +82,34 @@
 
 .timezoneContainer {
   margin-top: 0.75rem;
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
 }
 
 .timezoneLabel {
-  font-size: 0.8rem;
+  display: block;
+  font-size: 0.75rem;
+  font-weight: 600;
   color: #6b7280;
-  flex-shrink: 0;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  margin-bottom: 0.35rem;
 }
 
 .timezoneSelect {
-  font-size: 0.8rem;
+  display: block;
+  width: 100%;
+  font-size: 1rem;
   font-family: inherit;
   color: #374151;
   border: 1px solid #d1d5db;
-  border-radius: 6px;
-  padding: 0.2rem 0.5rem;
+  border-radius: 10px;
+  padding: 0.65rem 2.5rem 0.65rem 0.75rem;
   background: #fff;
+  box-sizing: border-box;
+  appearance: none;
+  -webkit-appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%236b7280' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.85rem center;
   cursor: pointer;
 }
 

@@ -25,6 +25,7 @@ Route::get('/auth/google/callback', [GoogleController::class, 'callback']);
 
 Route::middleware('auth:sanctum')->group(function () {
     Route::get('/itineraries', [ItineraryController::class, 'index']);
+    Route::post('/itineraries', [ItineraryController::class, 'store']);
     Route::get('/itineraries/{itinerary}', [ItineraryController::class, 'show']);
     Route::patch('/itineraries/{itinerary}', [ItineraryController::class, 'update']);
     Route::post('/itineraries/{itinerary}/events', [EventController::class, 'store']);

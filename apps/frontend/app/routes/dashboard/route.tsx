@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { type LoaderFunctionArgs, redirect, json } from '@remix-run/node';
 import { useLoaderData, Link } from '@remix-run/react';
 import styles from './dashboard.module.css';
@@ -5,6 +6,7 @@ import { getSession } from '../../services/session.server';
 import type { Itinerary } from './dashboard.types';
 import { EmptyState } from './components/EmptyState';
 import { ItineraryView } from './components/ItineraryView';
+import { TripFormModal } from './components/TripFormModal';
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   const baseUrl = process.env.API_BASE_URL || 'http://localhost:8000';
@@ -27,24 +29,78 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
 };
 
 export default function Dashboard() {
-  const { itineraries, token, apiBase } = useLoaderData<typeof loader>();
+  const { itineraries: initial, token, apiBase } = useLoaderData<typeof loader>();
+  const [itineraries, setItineraries] = useState<Itinerary[]>(initial);
+  const [activeIndex, setActiveIndex] = useState(0);
+  const [modalTrip, setModalTrip] = useState<Itinerary | 'new' | null>(null);
+
+  const activeTrip = itineraries[activeIndex] ?? itineraries[0];
+
+  const handleTripSaved = (saved: Itinerary) => {
+    setItineraries((prev) => {
+      const exists = prev.findIndex((t) => t.id === saved.id);
+      if (exists !== -1) {
+        const next = prev.map((t) => (t.id === saved.id ? { ...t, ...saved } : t));
+        return next;
+      }
+      setActiveIndex(prev.length);
+      return [...prev, saved];
+    });
+    setModalTrip(null);
+  };
 
   return (
     <div className={styles.page}>
       <header className={styles.header}>
         <div className={styles.headerContent}>
           <span className={styles.logo}>travel-it</span>
-          <Link to="/" className={styles.homeLink}>← Home</Link>
+          <div className={styles.headerActions}>
+            <button onClick={() => setModalTrip('new')} className={styles.newTripBtn}>
+              + New trip
+            </button>
+            <Link to="/" className={styles.homeLink}>← Home</Link>
+          </div>
         </div>
       </header>
 
       <main className={styles.main}>
         {itineraries.length === 0 ? (
-          <EmptyState />
+          <EmptyState onAddTrip={() => setModalTrip('new')} />
         ) : (
-          <ItineraryView itinerary={itineraries[0]} token={token} apiBase={apiBase} />
+          <>
+            {itineraries.length > 1 && (
+              <div className={styles.tripSwitcher}>
+                {itineraries.map((trip, i) => (
+                  <button
+                    key={trip.id}
+                    onClick={() => setActiveIndex(i)}
+                    className={i === activeIndex ? styles.tripBtnActive : styles.tripBtn}
+                  >
+                    {trip.title}
+                  </button>
+                ))}
+              </div>
+            )}
+            <ItineraryView
+              key={activeTrip.id}
+              itinerary={activeTrip}
+              token={token}
+              apiBase={apiBase}
+              onEditTrip={() => setModalTrip(activeTrip)}
+            />
+          </>
         )}
       </main>
+
+      {modalTrip !== null && (
+        <TripFormModal
+          itinerary={modalTrip === 'new' ? undefined : modalTrip}
+          token={token}
+          apiBase={apiBase}
+          onSaved={handleTripSaved}
+          onClose={() => setModalTrip(null)}
+        />
+      )}
     </div>
   );
 }
