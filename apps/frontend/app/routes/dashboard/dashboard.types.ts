@@ -1,4 +1,4 @@
-export type EventType = 'activity' | 'transport' | 'accommodation' | 'synced';
+export type EventType = 'activity' | 'flight' | 'train' | 'transport' | 'accommodation' | 'synced';
 
 export interface MediaItem {
   id: number;

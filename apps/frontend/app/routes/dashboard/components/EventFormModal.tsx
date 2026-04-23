@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import type { TripEvent } from '../dashboard.types';
 import { toDatetimeLocalInTz, tzLocalToUtc } from '../dashboard.utils';
+import { COMMON_TIMEZONES } from '../dashboard.constants';
 import styles from './EventFormModal.module.css';
 
 interface EventFormModalProps {
@@ -29,9 +30,10 @@ export function EventFormModal({
     : `${activeDay}T09:00`;
 
   const [title, setTitle] = useState(event?.title ?? '');
-  const [type, setType] = useState<'activity' | 'transport' | 'accommodation'>(
+  const [type, setType] = useState<'activity' | 'flight' | 'train' | 'transport' | 'accommodation'>(
     event && event.type !== 'synced' ? event.type : 'activity'
   );
+  const [formTimezone, setFormTimezone] = useState(timezone);
   const [startAt, setStartAt] = useState(defaultStart);
   const [endAt, setEndAt] = useState(event ? toDatetimeLocalInTz(event.end_at, timezone) : '');
   const [location, setLocation] = useState(event?.location ?? '');
@@ -40,6 +42,12 @@ export function EventFormModal({
   const [saving, setSaving] = useState(false);
   const [isClosing, setIsClosing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const handleFormTimezoneChange = (newTz: string) => {
+    if (startAt) setStartAt(toDatetimeLocalInTz(tzLocalToUtc(startAt, formTimezone), newTz));
+    if (endAt) setEndAt(toDatetimeLocalInTz(tzLocalToUtc(endAt, formTimezone), newTz));
+    setFormTimezone(newTz);
+  };
 
   const handleClose = () => {
     setIsClosing(true);
@@ -54,8 +62,8 @@ export function EventFormModal({
     const body = {
       title,
       type,
-      start_at: tzLocalToUtc(startAt, timezone),
-      end_at: endAt ? tzLocalToUtc(endAt, timezone) : null,
+      start_at: tzLocalToUtc(startAt, formTimezone),
+      end_at: endAt ? tzLocalToUtc(endAt, formTimezone) : null,
       location: location || null,
       description: description || null,
     };
@@ -152,8 +160,23 @@ export function EventFormModal({
               className={styles.select}
             >
               <option value="activity">📍 Activity</option>
-              <option value="transport">🚆 Transport</option>
+              <option value="flight">✈️ Flight</option>
+              <option value="train">🚂 Train</option>
+              <option value="transport">🚌 Transport</option>
               <option value="accommodation">🏨 Accommodation</option>
+            </select>
+          </div>
+
+          <div>
+            <label className={styles.label}>Timezone</label>
+            <select
+              value={formTimezone}
+              onChange={(e) => handleFormTimezoneChange(e.target.value)}
+              className={styles.select}
+            >
+              {COMMON_TIMEZONES.map(({ label, value }) => (
+                <option key={value} value={value}>{label}</option>
+              ))}
             </select>
           </div>
 

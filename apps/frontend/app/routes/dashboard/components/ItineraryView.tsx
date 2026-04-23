@@ -17,6 +17,7 @@ interface ItineraryViewProps {
 export function ItineraryView({ itinerary, token, apiBase, onEditTrip }: ItineraryViewProps) {
   const days = getDays(itinerary);
   const [timezone, setTimezone] = useState(itinerary.timezone || 'UTC');
+  const [use24h, setUse24h] = useState(false);
   const today = new Intl.DateTimeFormat('en-CA', {
     timeZone: timezone,
     year: 'numeric', month: '2-digit', day: '2-digit',
@@ -26,7 +27,6 @@ export function ItineraryView({ itinerary, token, apiBase, onEditTrip }: Itinera
   const [modalEvent, setModalEvent] = useState<TripEvent | null | 'new'>(null);
   const [syncing, setSyncing] = useState(false);
   const [syncError, setSyncError] = useState<string | null>(null);
-  const [tzSaving, setTzSaving] = useState(false);
   const [dayNotes, setDayNotes] = useState<DayNote[]>(itinerary.day_notes);
   const [dayNoteText, setDayNoteText] = useState(
     () => itinerary.day_notes.find((n) => n.date === days[0])?.content ?? ''
@@ -58,15 +58,8 @@ export function ItineraryView({ itinerary, token, apiBase, onEditTrip }: Itinera
     }
   };
 
-  const handleTimezoneChange = async (tz: string) => {
+  const handleTimezoneChange = (tz: string) => {
     setTimezone(tz);
-    setTzSaving(true);
-    await fetch(`${apiBase}/api/itineraries/${itinerary.id}`, {
-      method: 'PATCH',
-      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json', Accept: 'application/json' },
-      body: JSON.stringify({ timezone: tz }),
-    });
-    setTzSaving(false);
   };
 
   // When timezone changes, re-resolve today and switch to it if it's within the trip
@@ -161,18 +154,32 @@ export function ItineraryView({ itinerary, token, apiBase, onEditTrip }: Itinera
           </p>
         )}
 
-        <div className={styles.timezoneContainer}>
-          <label className={styles.timezoneLabel}>Timezone</label>
-          <select
-            value={timezone}
-            onChange={(e) => handleTimezoneChange(e.target.value)}
-            disabled={tzSaving}
-            className={styles.timezoneSelect}
-          >
-            {COMMON_TIMEZONES.map(({ label, value }) => (
-              <option key={value} value={value}>{label}</option>
-            ))}
-          </select>
+        <div className={styles.viewControls}>
+          <div className={styles.timezoneContainer}>
+            <label className={styles.timezoneLabel}>View timezone</label>
+            <select
+              value={timezone}
+              onChange={(e) => handleTimezoneChange(e.target.value)}
+              className={styles.timezoneSelect}
+            >
+              {COMMON_TIMEZONES.map(({ label, value }) => (
+                <option key={value} value={value}>{label}</option>
+              ))}
+            </select>
+          </div>
+          <div className={styles.timeFormatToggle}>
+            <label className={styles.timezoneLabel}>Time format</label>
+            <div className={styles.timeFormatBtns}>
+              <button
+                onClick={() => setUse24h(false)}
+                className={!use24h ? styles.timeFormatBtnActive : styles.timeFormatBtn}
+              >12h</button>
+              <button
+                onClick={() => setUse24h(true)}
+                className={use24h ? styles.timeFormatBtnActive : styles.timeFormatBtn}
+              >24h</button>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -214,6 +221,7 @@ export function ItineraryView({ itinerary, token, apiBase, onEditTrip }: Itinera
               key={event.id}
               event={event}
               timezone={timezone}
+              use24h={use24h}
               token={token}
               apiBase={apiBase}
               onEdit={() => setModalEvent(event)}

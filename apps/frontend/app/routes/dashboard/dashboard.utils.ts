@@ -1,10 +1,10 @@
 import type { Itinerary, TripEvent } from './dashboard.types';
 
-export function formatTime(dateStr: string, tz: string) {
-  return new Date(dateStr).toLocaleTimeString('en-GB', {
-    hour: '2-digit',
+export function formatTime(dateStr: string, tz: string, use24h = false) {
+  return new Date(dateStr).toLocaleTimeString(use24h ? 'en-GB' : 'en-US', {
+    hour: use24h ? '2-digit' : 'numeric',
     minute: '2-digit',
-    hour12: false,
+    hour12: !use24h,
     timeZone: tz,
   });
 }
@@ -76,11 +76,21 @@ export function toDatetimeLocalInTz(dateStr: string | null, tz: string): string 
 
 // Convert a datetime-local string (wall-clock time in `tz`) to a UTC ISO string.
 export function tzLocalToUtc(datetimeLocal: string, tz: string): string {
-  // Treat the input as UTC to get a reference timestamp
   const asIfUtc = new Date(datetimeLocal + 'Z');
-  // Ask what wall-clock time that UTC moment shows in the target timezone
-  const wallClock = new Date(asIfUtc.toLocaleString('en-US', { timeZone: tz }));
-  // The difference is the UTC offset for that timezone at that moment
-  const offsetMs = asIfUtc.getTime() - wallClock.getTime();
+  // Use formatToParts to get wall-clock components in the target timezone.
+  // Avoids the machine-local-timezone parsing bug of toLocaleString + new Date().
+  const parts = new Intl.DateTimeFormat('en-CA', {
+    timeZone: tz,
+    year: 'numeric', month: '2-digit', day: '2-digit',
+    hour: '2-digit', minute: '2-digit', second: '2-digit',
+    hour12: false,
+  }).formatToParts(asIfUtc);
+  const get = (type: string) => parts.find((p) => p.type === type)?.value ?? '00';
+  const hour = get('hour') === '24' ? '00' : get('hour');
+  // Reconstruct as a UTC timestamp purely for arithmetic
+  const wallClockAsUtc = new Date(
+    `${get('year')}-${get('month')}-${get('day')}T${hour}:${get('minute')}:${get('second')}Z`
+  );
+  const offsetMs = asIfUtc.getTime() - wallClockAsUtc.getTime();
   return new Date(asIfUtc.getTime() + offsetMs).toISOString();
 }

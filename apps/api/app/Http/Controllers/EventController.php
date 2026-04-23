@@ -15,7 +15,7 @@ class EventController extends Controller
 {
     private array $rules = [
         'title' => 'required|string|max:255',
-        'type' => 'required|in:activity,transport,accommodation',
+        'type' => 'required|in:activity,flight,train,transport,accommodation',
         'start_at' => 'required|date',
         'end_at' => 'nullable|date|after:start_at',
         'location' => 'nullable|string|max:255',

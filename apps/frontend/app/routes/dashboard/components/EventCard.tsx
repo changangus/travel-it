@@ -12,6 +12,7 @@ import styles from './EventCard.module.css';
 interface EventCardProps {
   event: TripEvent;
   timezone: string;
+  use24h: boolean;
   token: string;
   apiBase: string;
   onEdit: () => void;
@@ -22,6 +23,7 @@ interface EventCardProps {
 export function EventCard({
   event,
   timezone,
+  use24h,
   token,
   apiBase,
   onEdit,
@@ -84,12 +86,16 @@ export function EventCard({
 
   // Determine type-specific card class
   let cardTypeClass = styles.eventCardActivity;
+  if (event.type === 'flight') cardTypeClass = styles.eventCardFlight;
+  if (event.type === 'train') cardTypeClass = styles.eventCardTrain;
   if (event.type === 'transport') cardTypeClass = styles.eventCardTransport;
   if (event.type === 'accommodation') cardTypeClass = styles.eventCardAccommodation;
   if (event.type === 'synced') cardTypeClass = styles.eventCardSynced;
 
   // Determine type-specific tag class
   let tagTypeClass = styles.eventTypeTagActivity;
+  if (event.type === 'flight') tagTypeClass = styles.eventTypeTagFlight;
+  if (event.type === 'train') tagTypeClass = styles.eventTypeTagTrain;
   if (event.type === 'transport') tagTypeClass = styles.eventTypeTagTransport;
   if (event.type === 'accommodation') tagTypeClass = styles.eventTypeTagAccommodation;
   if (event.type === 'synced') tagTypeClass = styles.eventTypeTagSynced;
@@ -108,8 +114,8 @@ export function EventCard({
               )}
             </div>
             <div className={styles.eventMeta}>
-              {formatTime(event.start_at, timezone)}
-              {event.end_at && ` – ${formatTime(event.end_at, timezone)}`}
+              {formatTime(event.start_at, timezone, use24h)}
+              {event.end_at && ` – ${formatTime(event.end_at, timezone, use24h)}`}
               {event.location && <span className={styles.eventLocation}> · {event.location}</span>}
             </div>
             {event.description && (

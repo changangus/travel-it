@@ -80,8 +80,52 @@
   color: #ef4444;
 }
 
-.timezoneContainer {
+.viewControls {
   margin-top: 0.75rem;
+  display: flex;
+  align-items: flex-end;
+  gap: 0.75rem;
+}
+
+.timezoneContainer {
+  flex: 1;
+}
+
+.timeFormatToggle {
+  flex-shrink: 0;
+}
+
+.timeFormatBtns {
+  display: flex;
+  border: 1px solid #d1d5db;
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.timeFormatBtn {
+  padding: 0.65rem 0.85rem;
+  font-size: 0.875rem;
+  font-family: inherit;
+  font-weight: 500;
+  background: #fff;
+  color: #6b7280;
+  border: none;
+  cursor: pointer;
+}
+
+.timeFormatBtn:first-child {
+  border-right: 1px solid #d1d5db;
+}
+
+.timeFormatBtnActive {
+  padding: 0.65rem 0.85rem;
+  font-size: 0.875rem;
+  font-family: inherit;
+  font-weight: 600;
+  background: #6366f1;
+  color: #fff;
+  border: none;
+  cursor: pointer;
 }
 
 .timezoneLabel {

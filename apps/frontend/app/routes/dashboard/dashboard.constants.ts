@@ -6,7 +6,9 @@ export const COMMON_TIMEZONES = [
 ];
 
 export const TYPE_STYLES: Record<EventType, { icon: string }> = {
-  transport:     { icon: '🚆' },
+  flight:        { icon: '✈️' },
+  train:         { icon: '🚂' },
+  transport:     { icon: '🚌' },
   activity:      { icon: '📍' },
   accommodation: { icon: '🏨' },
   synced:        { icon: '📅' },
