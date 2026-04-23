@@ -19,7 +19,7 @@ class MediaController extends Controller
 
         $file = $request->file('file');
         $type = str_starts_with($file->getMimeType(), 'image/') ? 'photo' : 'document';
-        $path = $file->store("events/{$event->id}", 'public');
+        $path = $file->store("events/{$event->id}", 's3');
 
         $media = $event->media()->create([
             'user_id' => $request->user()->id,
@@ -35,7 +35,7 @@ class MediaController extends Controller
 
     public function download(Media $media): StreamedResponse
     {
-        return Storage::disk('public')->download($media->file_path, $media->file_name);
+        return Storage::disk('s3')->download($media->file_path, $media->file_name);
     }
 
     public function destroy(Request $request, Media $media): JsonResponse

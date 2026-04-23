@@ -21,7 +21,7 @@ class Media extends Model
             return $this->file_path;
         }
 
-        return Storage::disk('public')->url($this->file_path);
+        return Storage::disk('s3')->temporaryUrl($this->file_path, now()->addHour());
     }
 
     public function event(): BelongsTo
