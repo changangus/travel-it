@@ -45,7 +45,8 @@ jobs:
             set -e
             cd ~/travel-it
             sudo chown -R changangus2:changangus2 .
-            git pull
+            git fetch origin
+            git reset --hard origin/main
 
             # API
             cd apps/api
