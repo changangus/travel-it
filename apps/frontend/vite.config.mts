@@ -23,7 +23,7 @@ export default defineConfig(({ mode }) => ({
     nxViteTsPaths(),
   ],
   ssr: {
-    noExternal: mode === 'development' ? true : undefined,
+    noExternal: mode === 'production' ? true : undefined,
   },
   server: {
     port: 5174,
