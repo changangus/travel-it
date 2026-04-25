@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Event;
 use App\Models\Itinerary;
+use App\Models\UserEventSync;
 use App\Services\GoogleCalendarService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -40,16 +41,30 @@ class EventController extends Controller
         $event->load(['media', 'note']);
 
         $calendarSynced = true;
-        if ($event->is_synced && $event->google_event_id) {
+        $userSync = UserEventSync::where('user_id', $request->user()->id)
+            ->where('event_id', $event->id)
+            ->first();
+
+        if ($userSync) {
             try {
-                (new GoogleCalendarService($request->user()))->updateEvent($event);
+                (new GoogleCalendarService($request->user()))->updateEvent($event, $userSync->google_event_id);
             } catch (\Exception) {
-                $event->update(['is_synced' => false, 'google_event_id' => null]);
+                $userSync->delete();
                 $calendarSynced = false;
             }
         }
 
-        $response = ['data' => $event->fresh(['media', 'note'])];
+        $freshEvent = $event->fresh(['media', 'note']);
+
+        // Re-query sync state after possible deletion above
+        $syncRecord = UserEventSync::where('user_id', $request->user()->id)
+            ->where('event_id', $freshEvent->id)
+            ->first();
+
+        $freshEvent->is_synced = (bool) $syncRecord;
+        $freshEvent->google_event_id = $syncRecord?->google_event_id;
+
+        $response = ['data' => $freshEvent];
         if (! $calendarSynced) {
             $response['calendar_sync'] = false;
         }
@@ -105,9 +120,13 @@ class EventController extends Controller
 
     public function destroy(Request $request, Event $event): JsonResponse
     {
-        if ($event->is_synced && $event->google_event_id) {
+        $userSync = UserEventSync::where('user_id', $request->user()->id)
+            ->where('event_id', $event->id)
+            ->first();
+
+        if ($userSync) {
             try {
-                (new GoogleCalendarService($request->user()))->deleteEvent($event->google_event_id);
+                (new GoogleCalendarService($request->user()))->deleteEvent($userSync->google_event_id);
             } catch (\Exception) {
                 // Non-blocking — local delete proceeds regardless
             }

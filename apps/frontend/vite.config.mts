@@ -8,7 +8,7 @@ declare module '@remix-run/node' {
   }
 }
 
-export default defineConfig({
+export default defineConfig(({ mode }) => ({
   root: import.meta.dirname,
   plugins: [
     remix({
@@ -23,9 +23,9 @@ export default defineConfig({
     nxViteTsPaths(),
   ],
   ssr: {
-    noExternal: true,
+    noExternal: mode === 'development' ? true : undefined,
   },
   server: {
     port: 5174,
   },
-});
+}));

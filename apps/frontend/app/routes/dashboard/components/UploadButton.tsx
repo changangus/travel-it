@@ -42,7 +42,7 @@ export function UploadButton({ eventId, token, apiBase, onUploaded }: UploadButt
       <input
         ref={inputRef}
         type="file"
-        accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.txt"
+        accept="image/*,.heic,.HEIC,image/heic,image/heif,.pdf,.doc,.docx,.xls,.xlsx,.txt"
         className={styles.hidden}
         onChange={handleChange}
       />

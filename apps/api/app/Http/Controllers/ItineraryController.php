@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Itinerary;
+use App\Models\UserEventSync;
 use App\Services\GoogleCalendarService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -12,31 +13,46 @@ class ItineraryController extends Controller
     public function index(Request $request): JsonResponse
     {
         $itineraries = Itinerary::with(['events.media', 'events.note', 'dayNotes'])->orderBy('start_date')->get();
+        $userId = $request->user()->id;
 
-        // If the user has calendar access, verify synced events still exist in Google Calendar
+        // If the user has calendar access, verify their synced events still exist in Google Calendar
         try {
             $service = new GoogleCalendarService($request->user());
 
-            $itineraries->each(function ($itinerary) use ($service) {
-                $itinerary->events
-                    ->where('is_synced', true)
-                    ->whereNotNull('google_event_id')
-                    ->each(function ($event) use ($service) {
-                        try {
-                            if (! $service->eventExists($event->google_event_id)) {
-                                $event->update(['is_synced' => false, 'google_event_id' => null]);
-                            }
-                        } catch (\Exception) {
-                            // Skip — don't let a single check failure break the load
-                        }
-                    });
-            });
+            $allEventIds = $itineraries->flatMap(fn ($i) => $i->events->pluck('id'));
+
+            $userSyncs = UserEventSync::where('user_id', $userId)
+                ->whereIn('event_id', $allEventIds)
+                ->get();
+
+            foreach ($userSyncs as $sync) {
+                try {
+                    if (! $service->eventExists($sync->google_event_id)) {
+                        $sync->delete();
+                    }
+                } catch (\Exception) {
+                    // Skip — don't let a single check failure break the load
+                }
+            }
         } catch (\RuntimeException) {
             // User has no Google token — skip calendar verification
         }
 
         // Reload to reflect any sync status changes
         $itineraries->load(['events.media', 'events.note', 'dayNotes']);
+
+        // Apply per-user sync status to all events
+        $allEventIds = $itineraries->flatMap(fn ($i) => $i->events->pluck('id'));
+        $syncs = UserEventSync::where('user_id', $userId)
+            ->whereIn('event_id', $allEventIds)
+            ->pluck('google_event_id', 'event_id');
+
+        $itineraries->each(function ($itinerary) use ($syncs) {
+            $itinerary->events->each(function ($event) use ($syncs) {
+                $event->is_synced = $syncs->has($event->id);
+                $event->google_event_id = $syncs->get($event->id);
+            });
+        });
 
         return response()->json(['data' => $itineraries]);
     }

@@ -63,10 +63,10 @@ class GoogleCalendarService
         return $created->getId();
     }
 
-    public function updateEvent(Event $event): void
+    public function updateEvent(Event $event, string $googleEventId): void
     {
         $googleEvent = $this->buildGoogleEvent($event);
-        $this->calendar->events->update('primary', $event->google_event_id, $googleEvent);
+        $this->calendar->events->update('primary', $googleEventId, $googleEvent);
     }
 
     public function deleteEvent(string $googleEventId): void

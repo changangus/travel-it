@@ -11,13 +11,12 @@ class Event extends Model
 {
     protected $fillable = [
         'itinerary_id', 'title', 'description', 'location',
-        'start_at', 'end_at', 'type', 'google_event_id', 'is_synced',
+        'start_at', 'end_at', 'type',
     ];
 
     protected $casts = [
         'start_at' => 'datetime',
         'end_at' => 'datetime',
-        'is_synced' => 'boolean',
     ];
 
     public function itinerary(): BelongsTo
@@ -33,5 +32,10 @@ class Event extends Model
     public function note(): HasOne
     {
         return $this->hasOne(Note::class);
+    }
+
+    public function userSyncs(): HasMany
+    {
+        return $this->hasMany(UserEventSync::class);
     }
 }

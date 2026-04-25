@@ -18,6 +18,7 @@
     }
   },
   "include": [
+    "vite.config.mts",
     "app/**/*.ts",
     "app/**/*.tsx",
     "app/**/*.js",
