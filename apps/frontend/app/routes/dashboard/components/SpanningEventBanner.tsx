@@ -14,6 +14,7 @@ interface SpanningEventBannerProps {
   token: string;
   apiBase: string;
   onEdit: () => void;
+  onViewDetail: () => void;
   onDeleted: (id: number) => void;
 }
 
@@ -38,6 +39,7 @@ export function SpanningEventBanner({
   token,
   apiBase,
   onEdit,
+  onViewDetail,
   onDeleted,
 }: SpanningEventBannerProps) {
   const [confirmDelete, setConfirmDelete] = useState(false);
@@ -57,11 +59,14 @@ export function SpanningEventBanner({
     <>
       <div className={`${styles.banner} ${bannerTypeClass ?? ''}`}>
         <div className={styles.accentStripe} />
-        <span className={styles.icon}>{s.icon}</span>
-        <span className={styles.title}>{event.title}</span>
-        <span className={styles.label}>{label}</span>
+        <button className={styles.bannerClickable} onClick={onViewDetail}>
+          <span className={styles.icon}>{s.icon}</span>
+          <span className={styles.title}>{event.title}</span>
+          <span className={styles.label}>{label}</span>
+        </button>
         <div className={styles.actions}>
           <EllipsisMenu items={[
+            { label: 'View details', onClick: onViewDetail },
             { label: 'Edit', onClick: onEdit },
             { label: 'Delete', danger: true, onClick: () => setConfirmDelete(true) },
           ]} />

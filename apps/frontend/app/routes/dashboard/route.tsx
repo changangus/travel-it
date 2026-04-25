@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { type LoaderFunctionArgs, redirect, json } from '@remix-run/node';
-import { useLoaderData, Link } from '@remix-run/react';
+import { useLoaderData, Link, useSearchParams } from '@remix-run/react';
 import styles from './dashboard.module.css';
 import { getSession } from '../../services/session.server';
 import type { Itinerary } from './dashboard.types';
@@ -30,8 +30,16 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
 
 export default function Dashboard() {
   const { itineraries: initial, token, apiBase } = useLoaderData<typeof loader>();
+  const [searchParams] = useSearchParams();
+  const eventIdParam = searchParams.get('eventId') ? Number(searchParams.get('eventId')) : null;
+
   const [itineraries, setItineraries] = useState<Itinerary[]>(initial);
-  const [activeIndex, setActiveIndex] = useState(0);
+
+  const initialActiveIndex = eventIdParam
+    ? Math.max(0, initial.findIndex((it) => it.events.some((e) => e.id === eventIdParam)))
+    : 0;
+
+  const [activeIndex, setActiveIndex] = useState(initialActiveIndex);
   const [modalTrip, setModalTrip] = useState<Itinerary | 'new' | null>(null);
 
   const activeTrip = itineraries[activeIndex] ?? itineraries[0];
@@ -58,6 +66,7 @@ export default function Dashboard() {
             <button onClick={() => setModalTrip('new')} className={styles.newTripBtn}>
               + New trip
             </button>
+            <Link to="/photos" className={styles.homeLink}>Photos</Link>
             <Link to="/" className={styles.homeLink}>← Home</Link>
           </div>
         </div>
@@ -87,6 +96,7 @@ export default function Dashboard() {
               token={token}
               apiBase={apiBase}
               onEditTrip={() => setModalTrip(activeTrip)}
+              initialEventId={eventIdParam ?? undefined}
             />
           </>
         )}

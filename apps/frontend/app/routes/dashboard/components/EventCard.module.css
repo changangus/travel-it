@@ -121,6 +121,21 @@
 .eventHeader {
   display: flex;
   gap: 1rem;
+  align-items: flex-start;
+}
+
+.eventClickable {
+  display: flex;
+  gap: 1rem;
+  flex: 1;
+  min-width: 0;
+  background: none;
+  border: none;
+  padding: 0;
+  text-align: left;
+  cursor: pointer;
+  font-family: inherit;
+  color: inherit;
 }
 
 .eventIcon {

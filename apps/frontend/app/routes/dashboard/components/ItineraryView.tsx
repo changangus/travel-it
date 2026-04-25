@@ -5,6 +5,7 @@ import { getDays, formatDayLabel, eventsForDay, spanningEventsForDay, isMultiDay
 import { EventCard } from './EventCard';
 import { SpanningEventBanner } from './SpanningEventBanner';
 import { EventFormModal } from './EventFormModal';
+import { EventDetailSheet } from './EventDetailSheet';
 import { EllipsisMenu } from './EllipsisMenu';
 import styles from './ItineraryView.module.css';
 
@@ -13,9 +14,10 @@ interface ItineraryViewProps {
   token: string;
   apiBase: string;
   onEditTrip: () => void;
+  initialEventId?: number;
 }
 
-export function ItineraryView({ itinerary, token, apiBase, onEditTrip }: ItineraryViewProps) {
+export function ItineraryView({ itinerary, token, apiBase, onEditTrip, initialEventId }: ItineraryViewProps) {
   const days = getDays(itinerary);
   const [timezone, setTimezone] = useState(itinerary.timezone || 'UTC');
   const [use24h, setUse24h] = useState(false);
@@ -26,6 +28,9 @@ export function ItineraryView({ itinerary, token, apiBase, onEditTrip }: Itinera
   const [activeDay, setActiveDay] = useState(days.includes(today) ? today : days[0]);
   const [events, setEvents] = useState<TripEvent[]>(itinerary.events);
   const [modalEvent, setModalEvent] = useState<TripEvent | null | 'new'>(null);
+  const [detailEvent, setDetailEvent] = useState<TripEvent | null>(
+    initialEventId ? (itinerary.events.find((e) => e.id === initialEventId) ?? null) : null
+  );
   const [syncing, setSyncing] = useState(false);
   const [syncError, setSyncError] = useState<string | null>(null);
   const [dayNotes, setDayNotes] = useState<DayNote[]>(itinerary.day_notes);
@@ -226,6 +231,7 @@ export function ItineraryView({ itinerary, token, apiBase, onEditTrip }: Itinera
             token={token}
             apiBase={apiBase}
             onEdit={() => setModalEvent(event)}
+            onViewDetail={() => setDetailEvent(event)}
             onDeleted={handleDeleted}
           />
         ))}
@@ -244,6 +250,7 @@ export function ItineraryView({ itinerary, token, apiBase, onEditTrip }: Itinera
               token={token}
               apiBase={apiBase}
               onEdit={() => setModalEvent(event)}
+              onViewDetail={() => setDetailEvent(event)}
               onDeleted={handleDeleted}
               onSynced={handleSaved}
               isCheckin={isMultiDay(event, timezone)}
@@ -270,6 +277,30 @@ export function ItineraryView({ itinerary, token, apiBase, onEditTrip }: Itinera
           apiBase={apiBase}
           onSaved={handleSaved}
           onClose={() => setModalEvent(null)}
+        />
+      )}
+
+      {detailEvent !== null && (
+        <EventDetailSheet
+          event={detailEvent}
+          timezone={timezone}
+          use24h={use24h}
+          token={token}
+          apiBase={apiBase}
+          isCheckin={isMultiDay(detailEvent, timezone)}
+          onEdit={() => {
+            setModalEvent(detailEvent);
+            setDetailEvent(null);
+          }}
+          onDeleted={(id) => {
+            handleDeleted(id);
+            setDetailEvent(null);
+          }}
+          onSynced={(updated) => {
+            handleSaved(updated);
+            setDetailEvent(updated);
+          }}
+          onClose={() => setDetailEvent(null)}
         />
       )}
     </div>
