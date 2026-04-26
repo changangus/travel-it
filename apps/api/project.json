@@ -14,7 +14,7 @@
     "serve": {
       "executor": "nx:run-commands",
       "options": {
-        "command": "php artisan serve",
+        "command": "php -d upload_max_filesize=50M -d post_max_size=50M artisan serve",
         "cwd": "apps/api"
       }
     },

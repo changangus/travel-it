@@ -12,12 +12,14 @@ interface UploadButtonProps {
 export function UploadButton({ eventId, token, apiBase, onUploaded }: UploadButtonProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const handleChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
     setUploading(true);
+    setError(null);
     const form = new FormData();
     form.append('file', file);
 
@@ -30,7 +32,17 @@ export function UploadButton({ eventId, token, apiBase, onUploaded }: UploadButt
       if (res.ok) {
         const { data } = await res.json();
         onUploaded(data);
+      } else {
+        let message = `Upload failed (${res.status})`;
+        try {
+          const body = await res.json();
+          if (body?.detail) message = body.detail;
+          else if (body?.message) message = body.message;
+        } catch {}
+        setError(message);
       }
+    } catch {
+      setError('Upload failed. Check your connection and try again.');
     } finally {
       setUploading(false);
       if (inputRef.current) inputRef.current.value = '';
@@ -53,6 +65,7 @@ export function UploadButton({ eventId, token, apiBase, onUploaded }: UploadButt
       >
         {uploading ? '⏳ Uploading…' : '+ Add photo or file'}
       </button>
+      {error && <p className={styles.uploadError}>{error}</p>}
     </>
   );
 }

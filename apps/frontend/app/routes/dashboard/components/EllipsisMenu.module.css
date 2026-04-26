@@ -15,16 +15,15 @@
 }
 
 .ellipsisMenu {
-  position: absolute;
-  top: calc(100% + 4px);
-  right: 0;
+  position: fixed;
   background: #fff;
   border: 1px solid #e5e7eb;
   border-radius: 8px;
   box-shadow: 0 4px 16px rgba(0,0,0,0.1);
   min-width: 180px;
-  z-index: 100;
+  z-index: 1000;
   overflow: hidden;
+  font-family: system-ui, sans-serif;
 }
 
 .ellipsisMenuItem {
